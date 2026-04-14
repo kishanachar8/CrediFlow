@@ -29,6 +29,7 @@ export default function App() {
   const [emis, setEmis] = useState([]);
   const [loanForm, setLoanForm] = useState(initialLoanForm);
   const [page, setPage] = useState('dashboard');
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     api.profile()
@@ -221,23 +222,78 @@ export default function App() {
         </div>
         {user && (
           <>
-            <div className="account-panel">
-              <div>
-                <span className="small-label">Signed in as</span>
-                <p>{user.name}</p>
-              </div>
-              <button className="secondary-button" onClick={logout}>
-                Logout
-              </button>
+            <div className="header-actions">
+              <nav className="header-nav" aria-label="Primary navigation">
+                <button
+                  className={`nav-item ${page === 'dashboard' ? 'active' : ''}`}
+                  onClick={() => {
+                    setPage('dashboard');
+                    setNavOpen(false);
+                  }}
+                >
+                  Dashboard
+                </button>
+                <button
+                  className={`nav-item ${page === 'analytics' ? 'active' : ''}`}
+                  onClick={() => {
+                    setPage('analytics');
+                    setNavOpen(false);
+                  }}
+                >
+                  Analytics
+                </button>
+              </nav>
             </div>
-            <div className="page-tabs">
-              <button className={`tab-button ${page === 'dashboard' ? 'active' : ''}`} onClick={() => setPage('dashboard')}>
+            <button
+              className="profile-toggle"
+              onClick={() => setNavOpen((prev) => !prev)}
+              aria-expanded={navOpen}
+              aria-label="Open account menu"
+            >
+              <span>{user.name?.[0]?.toUpperCase() || 'U'}</span>
+            </button>
+            <nav className={`nav-menu ${navOpen ? 'open' : ''}`}>
+              <div className="nav-profile">
+                <span className="nav-profile-name">{user.name}</span>
+                <span className="nav-profile-email">{user.email}</span>
+              </div>
+              <button
+                className={`nav-item ${page === 'dashboard' ? 'active' : ''}`}
+                onClick={() => {
+                  setPage('dashboard');
+                  setNavOpen(false);
+                }}
+              >
                 Dashboard
               </button>
-              <button className={`tab-button ${page === 'analytics' ? 'active' : ''}`} onClick={() => setPage('analytics')}>
+              <button
+                className={`nav-item ${page === 'analytics' ? 'active' : ''}`}
+                onClick={() => {
+                  setPage('analytics');
+                  setNavOpen(false);
+                }}
+              >
                 Analytics
               </button>
-            </div>
+              <button
+                className={`nav-item ${page === 'profile' ? 'active' : ''}`}
+                onClick={() => {
+                  setPage('profile');
+                  setNavOpen(false);
+                }}
+              >
+                Profile
+              </button>
+              <button
+                className="nav-item logout-item"
+                onClick={() => {
+                  setNavOpen(false);
+                  logout();
+                }}
+              >
+                Logout
+              </button>
+            </nav>
           </>
         )}
       </header>
@@ -288,6 +344,8 @@ export default function App() {
               ? 'dashboard'
               : page === 'analytics'
               ? 'analytics-page'
+              : page === 'profile'
+              ? 'profile-page'
               : 'loan-detail-page'
           }
         >
@@ -399,6 +457,35 @@ export default function App() {
                 </article>
               </section>
             </>
+          ) : page === 'profile' ? (
+            <main className="profile-page">
+              <section className="card profile-card">
+                <div className="section-title-row">
+                  <div>
+                    <span className="eyebrow">Your profile</span>
+                    <h2>Account details</h2>
+                  </div>
+                </div>
+                <div className="loan-summary-grid">
+                  <div className="loan-summary-card">
+                    <span className="loan-label">Name</span>
+                    <strong>{user.name}</strong>
+                  </div>
+                  <div className="loan-summary-card">
+                    <span className="loan-label">Email</span>
+                    <strong>{user.email}</strong>
+                  </div>
+                  <div className="loan-summary-card">
+                    <span className="loan-label">Active loans</span>
+                    <strong>{loanStats.activeLoans}</strong>
+                  </div>
+                  <div className="loan-summary-card">
+                    <span className="loan-label">Completed loans</span>
+                    <strong>{loanStats.completedLoans}</strong>
+                  </div>
+                </div>
+              </section>
+            </main>
           ) : page === 'analytics' ? (
             <main className="analytics-page">
               <section className="analytics-panel">
