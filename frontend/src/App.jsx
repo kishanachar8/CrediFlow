@@ -56,6 +56,8 @@ export default function App() {
     return { totalLoans, activeLoans, completedLoans, outstandingBalance };
   }, [loans]);
 
+  const activeLoans = useMemo(() => loans.filter((loan) => loan.status === 'active'), [loans]);
+
   const analytics = useMemo(() => {
     const totalPaid = loans.reduce((sum, loan) => sum + Number(loan.totalPaid || 0), 0);
     const totalRemaining = loans.reduce((sum, loan) => sum + Number(loan.remainingBalance || 0), 0);
@@ -154,6 +156,7 @@ export default function App() {
         nextDueDate,
       });
       setEmis(data.emis);
+      setPage('loanDetail');
     } catch (error) {
       showMessage(error.message || 'Failed to load EMIs', 'error');
     }
@@ -279,7 +282,15 @@ export default function App() {
           </div>
         </section>
       ) : (
-        <main className={page === 'dashboard' ? 'dashboard' : 'analytics-page'}>
+        <div
+          className={
+            page === 'dashboard'
+              ? 'dashboard'
+              : page === 'analytics'
+              ? 'analytics-page'
+              : 'loan-detail-page'
+          }
+        >
           {page === 'dashboard' ? (
             <>
               <section className="summary-panel">
@@ -302,229 +313,236 @@ export default function App() {
               </section>
 
               <section className="panel-grid">
-            <article className="card panel-card">
-              <div className="section-title-row">
-                <div>
-                  <span className="eyebrow">New loan</span>
-                  <h2>Create a loan</h2>
-                </div>
-              </div>
+                <article className="card panel-card">
+                  <div className="section-title-row">
+                    <div>
+                      <span className="eyebrow">New loan</span>
+                      <h2>Create a loan</h2>
+                    </div>
+                  </div>
 
-              <form onSubmit={submitLoan} className="grid-form">
-                <label className="field-label">
-                  EMI per month
-                  <input
-                    name="monthlyEmi"
-                    type="number"
-                    value={loanForm.monthlyEmi}
-                    onChange={handleLoanInput}
-                    placeholder="1250"
-                    required
-                  />
-                </label>
-                <label className="field-label">
-                  Number of months
-                  <input
-                    name="termMonths"
-                    type="number"
-                    value={loanForm.termMonths}
-                    onChange={handleLoanInput}
-                    placeholder="12"
-                    required
-                  />
-                </label>
-                <label className="field-label">
-                  Start date
-                  <input name="startDate" type="date" value={loanForm.startDate} onChange={handleLoanInput} />
-                </label>
-                <button className="primary-button" type="submit">
-                  Add loan
-                </button>
-              </form>
-            </article>
+                  <form onSubmit={submitLoan} className="grid-form">
+                    <label className="field-label">
+                      EMI per month
+                      <input
+                        name="monthlyEmi"
+                        type="number"
+                        value={loanForm.monthlyEmi}
+                        onChange={handleLoanInput}
+                        placeholder="1250"
+                        required
+                      />
+                    </label>
+                    <label className="field-label">
+                      Number of months
+                      <input
+                        name="termMonths"
+                        type="number"
+                        value={loanForm.termMonths}
+                        onChange={handleLoanInput}
+                        placeholder="12"
+                        required
+                      />
+                    </label>
+                    <label className="field-label">
+                      Start date
+                      <input name="startDate" type="date" value={loanForm.startDate} onChange={handleLoanInput} />
+                    </label>
+                    <button className="primary-button" type="submit">
+                      Add loan
+                    </button>
+                  </form>
+                </article>
 
-            <article className="card panel-card loans-card">
-              <div className="section-title-row">
-                <div>
-                  <span className="eyebrow">Loan portfolio</span>
-                  <h2>My loans</h2>
-                </div>
-              </div>
+                <article className="card panel-card loans-card">
+                  <div className="section-title-row">
+                    <div>
+                      <span className="eyebrow">Loan portfolio</span>
+                      <h2>My loans</h2>
+                    </div>
+                  </div>
 
-              {loans.length === 0 ? (
-                <p className="empty-state">No loans created yet. Add a loan to begin tracking EMIs.</p>
-              ) : (
-                <div className="loans-list">
-                  {loans.map((loan) => (
-                    <div key={loan._id} className="loan-item">
-                      <div className="loan-details">
-                        <span className="loan-label">Loan amount</span>
-                        <strong>{formatCurrency(loan.principal)}</strong>
+                  {activeLoans.length === 0 ? (
+                    <p className="empty-state">No active loans remaining. Create a new loan or switch to Analytics for overall progress.</p>
+                  ) : (
+                    <div className="loans-list">
+                      {activeLoans.map((loan) => (
+                        <div key={loan._id} className="loan-item">
+                          <div className="loan-details">
+                            <span className="loan-label">Loan amount</span>
+                            <strong>{formatCurrency(loan.principal)}</strong>
+                          </div>
+                          <div className="loan-details">
+                            <span className="loan-label">Monthly EMI</span>
+                            <strong>{formatCurrency(loan.monthlyEmi)}</strong>
+                          </div>
+                          <div className="loan-details">
+                            <span className="loan-label">Remaining</span>
+                            <strong>{formatCurrency(loan.remainingBalance)}</strong>
+                          </div>
+                          <div className="loan-details">
+                            <span className="loan-label">Status</span>
+                            <strong>{loan.status}</strong>
+                          </div>
+                          <div className="loan-actions">
+                            <button className="secondary-button" onClick={() => loadEmis(loan)}>
+                              View EMIs
+                            </button>
+                            <button className="secondary-button delete-button" onClick={() => deleteLoan(loan._id)}>
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              </section>
+            </>
+          ) : page === 'analytics' ? (
+            <main className="analytics-page">
+              <section className="analytics-panel">
+                <article className="card chart-card">
+                  <div className="chart-header">
+                    <div>
+                      <span className="eyebrow">Portfolio analysis</span>
+                      <h2>Paid vs remaining</h2>
+                    </div>
+                    <div className="chart-value">{analytics.paidPercent}% paid</div>
+                  </div>
+                  <div className="chart-content">
+                    <svg viewBox="0 0 120 120" className="donut-chart">
+                      <circle className="donut-ring" cx="60" cy="60" r="52" />
+                      <circle
+                        className="donut-segment"
+                        cx="60"
+                        cy="60"
+                        r="52"
+                        style={{
+                          strokeDasharray: `${2 * Math.PI * 52}`,
+                          strokeDashoffset: `${2 * Math.PI * 52 * (1 - analytics.paidPercent / 100)}`,
+                        }}
+                      />
+                      <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="donut-text">
+                        {analytics.paidPercent}%
+                      </text>
+                    </svg>
+                    <div className="chart-legend">
+                      <div>
+                        <span className="legend-dot paid" />
+                        <span>Paid</span>
+                        <strong>{formatCurrency(analytics.totalPaid)}</strong>
                       </div>
-                      <div className="loan-details">
-                        <span className="loan-label">Monthly EMI</span>
-                        <strong>{formatCurrency(loan.monthlyEmi)}</strong>
-                      </div>
-                      <div className="loan-details">
-                        <span className="loan-label">Remaining</span>
-                        <strong>{formatCurrency(loan.remainingBalance)}</strong>
-                      </div>
-                      <div className="loan-details">
-                        <span className="loan-label">Status</span>
-                        <strong>{loan.status}</strong>
-                      </div>
-                      <div className="loan-actions">
-                        <button className="secondary-button" onClick={() => loadEmis(loan)}>
-                          View EMIs
-                        </button>
-                        <button className="secondary-button delete-button" onClick={() => deleteLoan(loan._id)}>
-                          Delete
-                        </button>
+                      <div>
+                        <span className="legend-dot remaining" />
+                        <span>Remaining</span>
+                        <strong>{formatCurrency(analytics.totalRemaining)}</strong>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </article>
-          </section>
+                  </div>
+                </article>
+                <article className="card chart-card">
+                  <div className="chart-header">
+                    <div>
+                      <span className="eyebrow">Debt free projection</span>
+                      <h2>Debt free by</h2>
+                    </div>
+                  </div>
+                  <div className="chart-summary">
+                    <p>{analytics.debtFreeDate}</p>
+                    <p className="summary-note">Based on current schedules across all active loans.</p>
+                  </div>
+                </article>
+              </section>
 
-          {selectedLoan && (
-            <section className="card emi-panel">
-              <div className="section-title-row">
+              <section className="summary-panel">
+                <article className="summary-card">
+                  <span className="eyebrow">Total paid</span>
+                  <h3>{formatCurrency(analytics.totalPaid)}</h3>
+                </article>
+                <article className="summary-card">
+                  <span className="eyebrow">Total remaining</span>
+                  <h3>{formatCurrency(analytics.totalRemaining)}</h3>
+                </article>
+                <article className="summary-card">
+                  <span className="eyebrow">Active loans</span>
+                  <h3>{loanStats.activeLoans}</h3>
+                </article>
+                <article className="summary-card">
+                  <span className="eyebrow">Completed loans</span>
+                  <h3>{loanStats.completedLoans}</h3>
+                </article>
+              </section>
+            </main>
+          ) : (
+            <main className="loan-detail-page">
+              <div className="page-header-row">
                 <div>
-                  <span className="eyebrow">Repayment schedule</span>
+                  <span className="eyebrow">Loan details</span>
                   <h2>EMI schedule</h2>
                 </div>
+                <button className="secondary-button" onClick={() => setPage('dashboard')}>
+                  Back to dashboard
+                </button>
               </div>
 
-              <div className="loan-summary-grid">
-                <div className="loan-summary-card">
-                  <span className="loan-label">Loan amount</span>
-                  <strong>{formatCurrency(selectedLoan.principal)}</strong>
-                </div>
-                <div className="loan-summary-card">
-                  <span className="loan-label">Monthly EMI</span>
-                  <strong>{formatCurrency(selectedLoan.monthlyEmi)}</strong>
-                </div>
-                <div className="loan-summary-card">
-                  <span className="loan-label">Remaining balance</span>
-                  <strong>{formatCurrency(selectedLoan.remainingBalance)}</strong>
-                </div>
-                <div className="loan-summary-card">
-                  <span className="loan-label">Next payment</span>
-                  <strong>
-                    {selectedLoan.nextDueDate ? formatDate(selectedLoan.nextDueDate) : 'No upcoming payment'}
-                  </strong>
-                </div>
-              </div>
-
-              {emis.length === 0 ? (
-                <p className="empty-state">No EMI schedule found for this loan.</p>
-              ) : (
-                <div className="emis-list">
-                  {emis.map((emi) => (
-                    <div key={emi._id} className={`emi-item ${emi.paid ? 'paid' : ''}`}>
-                      <div className="emi-row">
-                        <span className="loan-label">Payment #{emi.paymentNumber}</span>
-                        <strong>{formatCurrency(emi.amount)}</strong>
-                      </div>
-                      <div className="emi-row">
-                        <span className="loan-label">Due date</span>
-                        <strong>{formatDate(emi.dueDate)}</strong>
-                      </div>
-                      <div className="emi-row">
-                        <span className="loan-label">Status</span>
-                        <strong>{emi.paid ? 'Paid' : 'Pending'}</strong>
-                      </div>
-                      {!emi.paid && (
-                        <button className="secondary-button" onClick={() => payEmi(emi._id)}>
-                          Mark as paid
-                        </button>
-                      )}
+              {selectedLoan ? (
+                <>
+                  <section className="loan-summary-grid">
+                    <div className="loan-summary-card">
+                      <span className="loan-label">Loan amount</span>
+                      <strong>{formatCurrency(selectedLoan.principal)}</strong>
                     </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
-        </>
-      ) : (
-        <>
-          <section className="analytics-panel">
-            <article className="card chart-card">
-              <div className="chart-header">
-                <div>
-                  <span className="eyebrow">Portfolio analysis</span>
-                  <h2>Paid vs remaining</h2>
-                </div>
-                <div className="chart-value">{analytics.paidPercent}% paid</div>
-              </div>
-              <div className="chart-content">
-                <svg viewBox="0 0 120 120" className="donut-chart">
-                  <circle className="donut-ring" cx="60" cy="60" r="52" />
-                  <circle
-                    className="donut-segment"
-                    cx="60"
-                    cy="60"
-                    r="52"
-                    style={{
-                      strokeDasharray: `${2 * Math.PI * 52}`,
-                      strokeDashoffset: `${2 * Math.PI * 52 * (1 - analytics.paidPercent / 100)}`,
-                    }}
-                  />
-                  <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="donut-text">
-                    {analytics.paidPercent}%
-                  </text>
-                </svg>
-                <div className="chart-legend">
-                  <div>
-                    <span className="legend-dot paid" />
-                    <span>Paid</span>
-                    <strong>{formatCurrency(analytics.totalPaid)}</strong>
-                  </div>
-                  <div>
-                    <span className="legend-dot remaining" />
-                    <span>Remaining</span>
-                    <strong>{formatCurrency(analytics.totalRemaining)}</strong>
-                  </div>
-                </div>
-              </div>
-            </article>
-            <article className="card chart-card">
-              <div className="chart-header">
-                <div>
-                  <span className="eyebrow">Debt free projection</span>
-                  <h2>Debt free by</h2>
-                </div>
-              </div>
-              <div className="chart-summary">
-                <p>{analytics.debtFreeDate}</p>
-                <p className="summary-note">Based on current schedules across all active loans.</p>
-              </div>
-            </article>
-          </section>
+                    <div className="loan-summary-card">
+                      <span className="loan-label">Monthly EMI</span>
+                      <strong>{formatCurrency(selectedLoan.monthlyEmi)}</strong>
+                    </div>
+                    <div className="loan-summary-card">
+                      <span className="loan-label">Remaining balance</span>
+                      <strong>{formatCurrency(selectedLoan.remainingBalance)}</strong>
+                    </div>
+                    <div className="loan-summary-card">
+                      <span className="loan-label">Next payment</span>
+                      <strong>
+                        {selectedLoan.nextDueDate ? formatDate(selectedLoan.nextDueDate) : 'No upcoming payment'}
+                      </strong>
+                    </div>
+                  </section>
 
-          <section className="summary-panel">
-            <article className="summary-card">
-              <span className="eyebrow">Total paid</span>
-              <h3>{formatCurrency(analytics.totalPaid)}</h3>
-            </article>
-            <article className="summary-card">
-              <span className="eyebrow">Total remaining</span>
-              <h3>{formatCurrency(analytics.totalRemaining)}</h3>
-            </article>
-            <article className="summary-card">
-              <span className="eyebrow">Active loans</span>
-              <h3>{loanStats.activeLoans}</h3>
-            </article>
-            <article className="summary-card">
-              <span className="eyebrow">Completed loans</span>
-              <h3>{loanStats.completedLoans}</h3>
-            </article>
-          </section>
-        </>
-      )}
-    </main>
+                  {emis.length === 0 ? (
+                    <p className="empty-state">No EMI schedule found for this loan.</p>
+                  ) : (
+                    <div className="emis-list">
+                      {emis.map((emi) => (
+                        <div key={emi._id} className={`emi-item ${emi.paid ? 'paid' : ''}`}>
+                          <div className="emi-row">
+                            <span className="loan-label">Payment #{emi.paymentNumber}</span>
+                            <strong>{formatCurrency(emi.amount)}</strong>
+                          </div>
+                          <div className="emi-row">
+                            <span className="loan-label">Due date</span>
+                            <strong>{formatDate(emi.dueDate)}</strong>
+                          </div>
+                          <div className="emi-row">
+                            <span className="loan-label">Status</span>
+                            <strong>{emi.paid ? 'Paid' : 'Pending'}</strong>
+                          </div>
+                          {!emi.paid && (
+                            <button className="secondary-button" onClick={() => payEmi(emi._id)}>
+                              Mark as paid
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="empty-state">Select a loan and view EMIs to see the repayment schedule.</p>
+              )}
+            </main>
+          )}
+        </div>
       )}
     </div>
   );
