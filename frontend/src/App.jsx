@@ -1,23 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { api } from './api.js';
+import { Header } from './components/Header.jsx';
+import { AuthView } from './components/AuthView.jsx';
+import { DashboardView } from './components/DashboardView.jsx';
+import { AnalyticsView } from './components/AnalyticsView.jsx';
+import { ProfileView } from './components/ProfileView.jsx';
+import { LoanDetailView } from './components/LoanDetailView.jsx';
+import { MessageBanner } from './components/MessageBanner.jsx';
+import { formatCurrency, formatDate } from './utils/format.js';
 
 const initialForm = { name: '', email: '', password: '' };
 const initialLoanForm = { monthlyEmi: '', termMonths: '', startDate: '' };
-
-const formatCurrency = (value) =>
-  `₹${Number(value || 0).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-
-const formatDate = (value) => {
-  if (!value) return '—';
-  const date = new Date(value);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-};
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -214,129 +207,11 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <div className="brand-block">
-          <span className="eyebrow">Loan performance dashboard</span>
-          <h1>CrediFlow</h1>
-          <p className="hero-copy">Manage loans, payments, and EMI schedules with confidence.</p>
-        </div>
-        {user && (
-          <>
-            <div className="header-actions">
-              <nav className="header-nav" aria-label="Primary navigation">
-                <button
-                  className={`nav-item ${page === 'dashboard' ? 'active' : ''}`}
-                  onClick={() => {
-                    setPage('dashboard');
-                    setNavOpen(false);
-                  }}
-                >
-                  Dashboard
-                </button>
-                <button
-                  className={`nav-item ${page === 'analytics' ? 'active' : ''}`}
-                  onClick={() => {
-                    setPage('analytics');
-                    setNavOpen(false);
-                  }}
-                >
-                  Analytics
-                </button>
-              </nav>
-            </div>
-            <button
-              className="profile-toggle"
-              onClick={() => setNavOpen((prev) => !prev)}
-              aria-expanded={navOpen}
-              aria-label="Open account menu"
-            >
-              <span>{user.name?.[0]?.toUpperCase() || 'U'}</span>
-            </button>
-            <nav className={`nav-menu ${navOpen ? 'open' : ''}`}>
-              <div className="nav-profile">
-                <span className="nav-profile-name">{user.name}</span>
-                <span className="nav-profile-email">{user.email}</span>
-              </div>
-              <button
-                className={`nav-item ${page === 'dashboard' ? 'active' : ''}`}
-                onClick={() => {
-                  setPage('dashboard');
-                  setNavOpen(false);
-                }}
-              >
-                Dashboard
-              </button>
-              <button
-                className={`nav-item ${page === 'analytics' ? 'active' : ''}`}
-                onClick={() => {
-                  setPage('analytics');
-                  setNavOpen(false);
-                }}
-              >
-                Analytics
-              </button>
-              <button
-                className={`nav-item ${page === 'profile' ? 'active' : ''}`}
-                onClick={() => {
-                  setPage('profile');
-                  setNavOpen(false);
-                }}
-              >
-                Profile
-              </button>
-              <button
-                className="nav-item logout-item"
-                onClick={() => {
-                  setNavOpen(false);
-                  logout();
-                }}
-              >
-                Logout
-              </button>
-            </nav>
-          </>
-        )}
-      </header>
-
-      {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
+      <Header user={user} page={page} setPage={setPage} navOpen={navOpen} setNavOpen={setNavOpen} logout={logout} />
+      <MessageBanner message={message} />
 
       {!user ? (
-        <section className="card auth-card">
-          <div className="card-header">
-            <div>
-              <span className="eyebrow">Secure access</span>
-              <h2>{mode === 'login' ? 'Sign In' : 'Create Account'}</h2>
-              <p className="section-copy">Access your loan portfolio and track EMI progress from one central workspace.</p>
-            </div>
-          </div>
-
-          <form onSubmit={submitAuth} className="auth-form">
-            {mode === 'register' && (
-              <label className="field-label">
-                Full name
-                <input name="name" value={form.name} onChange={handleInput} placeholder="Jane Doe" required />
-              </label>
-            )}
-            <label className="field-label">
-              Email address
-              <input name="email" type="email" value={form.email} onChange={handleInput} placeholder="hello@example.com" required />
-            </label>
-            <label className="field-label">
-              Password
-              <input name="password" type="password" value={form.password} onChange={handleInput} placeholder="••••••••" required />
-            </label>
-            <button className="primary-button" type="submit">
-              {mode === 'login' ? 'Sign In' : 'Create Account'}
-            </button>
-          </form>
-
-          <div className="card-footer">
-            <p>{mode === 'login' ? 'New to CrediFlow?' : 'Already have an account?'}</p>
-            <button className="link-button" onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
-              {mode === 'login' ? 'Create an account' : 'Sign in instead'}
-            </button>
-          </div>
-        </section>
+        <AuthView mode={mode} setMode={setMode} form={form} handleInput={handleInput} submitAuth={submitAuth} />
       ) : (
         <div
           className={
@@ -350,284 +225,29 @@ export default function App() {
           }
         >
           {page === 'dashboard' ? (
-            <>
-              <section className="summary-panel">
-                <article className="summary-card">
-                  <span className="eyebrow">Active loans</span>
-                  <h3>{loanStats.activeLoans}</h3>
-                </article>
-                <article className="summary-card">
-                  <span className="eyebrow">Total loans</span>
-                  <h3>{loanStats.totalLoans}</h3>
-                </article>
-                <article className="summary-card">
-                  <span className="eyebrow">Completed loans</span>
-                  <h3>{loanStats.completedLoans}</h3>
-                </article>
-                <article className="summary-card">
-                  <span className="eyebrow">Outstanding balance</span>
-                  <h3>{formatCurrency(loanStats.outstandingBalance)}</h3>
-                </article>
-              </section>
-
-              <section className="panel-grid">
-                <article className="card panel-card">
-                  <div className="section-title-row">
-                    <div>
-                      <span className="eyebrow">New loan</span>
-                      <h2>Create a loan</h2>
-                    </div>
-                  </div>
-
-                  <form onSubmit={submitLoan} className="grid-form">
-                    <label className="field-label">
-                      EMI per month
-                      <input
-                        name="monthlyEmi"
-                        type="number"
-                        value={loanForm.monthlyEmi}
-                        onChange={handleLoanInput}
-                        placeholder="1250"
-                        required
-                      />
-                    </label>
-                    <label className="field-label">
-                      Number of months
-                      <input
-                        name="termMonths"
-                        type="number"
-                        value={loanForm.termMonths}
-                        onChange={handleLoanInput}
-                        placeholder="12"
-                        required
-                      />
-                    </label>
-                    <label className="field-label">
-                      Start date
-                      <input name="startDate" type="date" value={loanForm.startDate} onChange={handleLoanInput} />
-                    </label>
-                    <button className="primary-button" type="submit">
-                      Add loan
-                    </button>
-                  </form>
-                </article>
-
-                <article className="card panel-card loans-card">
-                  <div className="section-title-row">
-                    <div>
-                      <span className="eyebrow">Loan portfolio</span>
-                      <h2>My loans</h2>
-                    </div>
-                  </div>
-
-                  {activeLoans.length === 0 ? (
-                    <p className="empty-state">No active loans remaining. Create a new loan or switch to Analytics for overall progress.</p>
-                  ) : (
-                    <div className="loans-list">
-                      {activeLoans.map((loan) => (
-                        <div key={loan._id} className="loan-item">
-                          <div className="loan-details">
-                            <span className="loan-label">Loan amount</span>
-                            <strong>{formatCurrency(loan.principal)}</strong>
-                          </div>
-                          <div className="loan-details">
-                            <span className="loan-label">Monthly EMI</span>
-                            <strong>{formatCurrency(loan.monthlyEmi)}</strong>
-                          </div>
-                          <div className="loan-details">
-                            <span className="loan-label">Remaining</span>
-                            <strong>{formatCurrency(loan.remainingBalance)}</strong>
-                          </div>
-                          <div className="loan-details">
-                            <span className="loan-label">Status</span>
-                            <strong>{loan.status}</strong>
-                          </div>
-                          <div className="loan-actions">
-                            <button className="secondary-button" onClick={() => loadEmis(loan)}>
-                              View EMIs
-                            </button>
-                            <button className="secondary-button delete-button" onClick={() => deleteLoan(loan._id)}>
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </article>
-              </section>
-            </>
+            <DashboardView
+              loanStats={loanStats}
+              loanForm={loanForm}
+              handleLoanInput={handleLoanInput}
+              submitLoan={submitLoan}
+              activeLoans={activeLoans}
+              loadEmis={loadEmis}
+              deleteLoan={deleteLoan}
+              formatCurrency={formatCurrency}
+            />
           ) : page === 'profile' ? (
-            <main className="profile-page">
-              <section className="card profile-card">
-                <div className="section-title-row">
-                  <div>
-                    <span className="eyebrow">Your profile</span>
-                    <h2>Account details</h2>
-                  </div>
-                </div>
-                <div className="loan-summary-grid">
-                  <div className="loan-summary-card">
-                    <span className="loan-label">Name</span>
-                    <strong>{user.name}</strong>
-                  </div>
-                  <div className="loan-summary-card">
-                    <span className="loan-label">Email</span>
-                    <strong>{user.email}</strong>
-                  </div>
-                  <div className="loan-summary-card">
-                    <span className="loan-label">Active loans</span>
-                    <strong>{loanStats.activeLoans}</strong>
-                  </div>
-                  <div className="loan-summary-card">
-                    <span className="loan-label">Completed loans</span>
-                    <strong>{loanStats.completedLoans}</strong>
-                  </div>
-                </div>
-              </section>
-            </main>
+            <ProfileView user={user} loanStats={loanStats} />
           ) : page === 'analytics' ? (
-            <main className="analytics-page">
-              <section className="analytics-panel">
-                <article className="card chart-card">
-                  <div className="chart-header">
-                    <div>
-                      <span className="eyebrow">Portfolio analysis</span>
-                      <h2>Paid vs remaining</h2>
-                    </div>
-                    <div className="chart-value">{analytics.paidPercent}% paid</div>
-                  </div>
-                  <div className="chart-content">
-                    <svg viewBox="0 0 120 120" className="donut-chart">
-                      <circle className="donut-ring" cx="60" cy="60" r="52" />
-                      <circle
-                        className="donut-segment"
-                        cx="60"
-                        cy="60"
-                        r="52"
-                        style={{
-                          strokeDasharray: `${2 * Math.PI * 52}`,
-                          strokeDashoffset: `${2 * Math.PI * 52 * (1 - analytics.paidPercent / 100)}`,
-                        }}
-                      />
-                      <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="donut-text">
-                        {analytics.paidPercent}%
-                      </text>
-                    </svg>
-                    <div className="chart-legend">
-                      <div>
-                        <span className="legend-dot paid" />
-                        <span>Paid</span>
-                        <strong>{formatCurrency(analytics.totalPaid)}</strong>
-                      </div>
-                      <div>
-                        <span className="legend-dot remaining" />
-                        <span>Remaining</span>
-                        <strong>{formatCurrency(analytics.totalRemaining)}</strong>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-                <article className="card chart-card">
-                  <div className="chart-header">
-                    <div>
-                      <span className="eyebrow">Debt free projection</span>
-                      <h2>Debt free by</h2>
-                    </div>
-                  </div>
-                  <div className="chart-summary">
-                    <p>{analytics.debtFreeDate}</p>
-                    <p className="summary-note">Based on current schedules across all active loans.</p>
-                  </div>
-                </article>
-              </section>
-
-              <section className="summary-panel">
-                <article className="summary-card">
-                  <span className="eyebrow">Total paid</span>
-                  <h3>{formatCurrency(analytics.totalPaid)}</h3>
-                </article>
-                <article className="summary-card">
-                  <span className="eyebrow">Total remaining</span>
-                  <h3>{formatCurrency(analytics.totalRemaining)}</h3>
-                </article>
-                <article className="summary-card">
-                  <span className="eyebrow">Active loans</span>
-                  <h3>{loanStats.activeLoans}</h3>
-                </article>
-                <article className="summary-card">
-                  <span className="eyebrow">Completed loans</span>
-                  <h3>{loanStats.completedLoans}</h3>
-                </article>
-              </section>
-            </main>
+            <AnalyticsView analytics={analytics} loanStats={loanStats} formatCurrency={formatCurrency} />
           ) : (
-            <main className="loan-detail-page">
-              <div className="page-header-row">
-                <div>
-                  <span className="eyebrow">Loan details</span>
-                  <h2>EMI schedule</h2>
-                </div>
-                <button className="secondary-button" onClick={() => setPage('dashboard')}>
-                  Back to dashboard
-                </button>
-              </div>
-
-              {selectedLoan ? (
-                <>
-                  <section className="loan-summary-grid">
-                    <div className="loan-summary-card">
-                      <span className="loan-label">Loan amount</span>
-                      <strong>{formatCurrency(selectedLoan.principal)}</strong>
-                    </div>
-                    <div className="loan-summary-card">
-                      <span className="loan-label">Monthly EMI</span>
-                      <strong>{formatCurrency(selectedLoan.monthlyEmi)}</strong>
-                    </div>
-                    <div className="loan-summary-card">
-                      <span className="loan-label">Remaining balance</span>
-                      <strong>{formatCurrency(selectedLoan.remainingBalance)}</strong>
-                    </div>
-                    <div className="loan-summary-card">
-                      <span className="loan-label">Next payment</span>
-                      <strong>
-                        {selectedLoan.nextDueDate ? formatDate(selectedLoan.nextDueDate) : 'No upcoming payment'}
-                      </strong>
-                    </div>
-                  </section>
-
-                  {emis.length === 0 ? (
-                    <p className="empty-state">No EMI schedule found for this loan.</p>
-                  ) : (
-                    <div className="emis-list">
-                      {emis.map((emi) => (
-                        <div key={emi._id} className={`emi-item ${emi.paid ? 'paid' : ''}`}>
-                          <div className="emi-row">
-                            <span className="loan-label">Payment #{emi.paymentNumber}</span>
-                            <strong>{formatCurrency(emi.amount)}</strong>
-                          </div>
-                          <div className="emi-row">
-                            <span className="loan-label">Due date</span>
-                            <strong>{formatDate(emi.dueDate)}</strong>
-                          </div>
-                          <div className="emi-row">
-                            <span className="loan-label">Status</span>
-                            <strong>{emi.paid ? 'Paid' : 'Pending'}</strong>
-                          </div>
-                          {!emi.paid && (
-                            <button className="secondary-button" onClick={() => payEmi(emi._id)}>
-                              Mark as paid
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="empty-state">Select a loan and view EMIs to see the repayment schedule.</p>
-              )}
-            </main>
+            <LoanDetailView
+              selectedLoan={selectedLoan}
+              emis={emis}
+              formatCurrency={formatCurrency}
+              formatDate={formatDate}
+              payEmi={payEmi}
+              setPage={setPage}
+            />
           )}
         </div>
       )}
