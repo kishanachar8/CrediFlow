@@ -12,7 +12,16 @@ exports.getEmisByLoan = async (req, res) => {
     const totalPaid = emis.filter((emi) => emi.paid).reduce((sum, emi) => sum + emi.amount, 0);
     const remainingBalance = emis.filter((emi) => !emi.paid).reduce((sum, emi) => sum + emi.amount, 0);
 
-    res.json({ loan: loan.toObject(), emis, totalPaid, remainingBalance });
+    res.json({
+      loan: {
+        ...loan.toObject(),
+        totalPaid,
+        remainingBalance,
+      },
+      emis,
+      totalPaid,
+      remainingBalance,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

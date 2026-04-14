@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from './api.js';
 
 const initialForm = { name: '', email: '', password: '' };
-const initialLoanForm = { principal: '', termMonths: '', startDate: '' };
+const initialLoanForm = { monthlyEmi: '', termMonths: '', startDate: '' };
 
 const formatCurrency = (value) =>
   `₹${Number(value || 0).toLocaleString(undefined, {
@@ -119,9 +119,18 @@ export default function App() {
     showMessage('');
 
     try {
+      const monthlyEmi = Number(loanForm.monthlyEmi);
+      const termMonths = Number(loanForm.termMonths);
+      const principal = monthlyEmi * termMonths;
+
+      if (!monthlyEmi || !termMonths) {
+        throw new Error('Please provide monthly EMI and number of months.');
+      }
+
       const loanPayload = {
-        principal: Number(loanForm.principal),
-        termMonths: Number(loanForm.termMonths),
+        principal,
+        monthlyEmi,
+        termMonths,
         startDate: loanForm.startDate || undefined,
       };
 
@@ -137,7 +146,13 @@ export default function App() {
   const loadEmis = async (loan) => {
     try {
       const data = await api.getEmisByLoan(loan._id);
-      setSelectedLoan({ ...loan, ...data.loan });
+      const nextDueDate = data.emis.find((emi) => !emi.paid)?.dueDate;
+      setSelectedLoan({
+        ...data.loan,
+        remainingBalance: data.remainingBalance,
+        totalPaid: data.totalPaid,
+        nextDueDate,
+      });
       setEmis(data.emis);
     } catch (error) {
       showMessage(error.message || 'Failed to load EMIs', 'error');
@@ -297,13 +312,13 @@ export default function App() {
 
               <form onSubmit={submitLoan} className="grid-form">
                 <label className="field-label">
-                  Total loan amount
+                  EMI per month
                   <input
-                    name="principal"
+                    name="monthlyEmi"
                     type="number"
-                    value={loanForm.principal}
+                    value={loanForm.monthlyEmi}
                     onChange={handleLoanInput}
-                    placeholder="15000"
+                    placeholder="1250"
                     required
                   />
                 </label>

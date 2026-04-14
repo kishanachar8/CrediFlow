@@ -36,21 +36,26 @@ const buildLoanSummary = async (loan) => {
 
 exports.createLoan = async (req, res) => {
   try {
-    const principal = Number(req.body.principal);
+    const rawPrincipal = Number(req.body.principal || 0);
+    const monthlyEmi = Number(req.body.monthlyEmi || 0);
     const termMonths = Number(req.body.termMonths);
     const startDate = req.body.startDate ? new Date(req.body.startDate) : undefined;
     const annualInterestRate = 0;
 
-    if (!principal || !termMonths) {
-      return res.status(400).json({ message: 'Please provide the total loan amount and number of months.' });
+    const principal = rawPrincipal || (monthlyEmi && termMonths ? monthlyEmi * termMonths : 0);
+
+    if ((!principal && !monthlyEmi) || !termMonths) {
+      return res.status(400).json({ message: 'Please provide the monthly EMI amount and number of months.' });
     }
+
+    const calculatedEmi = monthlyEmi || emiService.calculateMonthlyEmi(principal, annualInterestRate, termMonths);
 
     const loan = await Loan.create({
       user: req.user.id,
       principal,
       annualInterestRate,
       termMonths,
-      monthlyEmi: emiService.calculateMonthlyEmi(principal, annualInterestRate, termMonths),
+      monthlyEmi: calculatedEmi,
       startDate,
     });
 
