@@ -7,5 +7,6 @@ router.use(authMiddleware.ensureAuthenticated);
 router.post('/', loanController.createLoan);
 router.get('/', loanController.getLoans);
 router.get('/:id', loanController.getLoanById);
+router.delete('/:id', loanController.deleteLoan);
 
 module.exports = router;

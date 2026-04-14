@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const BASE_URL = import.meta.env.VITE_API_URL || '';
 
 async function fetchJson(path, options = {}) {
   const response = await fetch(`${BASE_URL}${path}`, {
@@ -24,6 +24,7 @@ export const api = {
   profile: () => fetchJson('/api/auth/profile', { method: 'GET' }),
   createLoan: (body) => fetchJson('/api/loans', { method: 'POST', body }),
   getLoans: () => fetchJson('/api/loans', { method: 'GET' }),
+  deleteLoan: (loanId) => fetchJson(`/api/loans/${loanId}`, { method: 'DELETE' }),
   getEmisByLoan: (loanId) => fetchJson(`/api/emis/loan/${loanId}`, { method: 'GET' }),
   payEmi: (emiId) => fetchJson(`/api/emis/${emiId}/pay`, { method: 'POST' }),
 };

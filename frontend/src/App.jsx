@@ -2,16 +2,33 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from './api.js';
 
 const initialForm = { name: '', email: '', password: '' };
+const initialLoanForm = { principal: '', termMonths: '', startDate: '' };
+
+const formatCurrency = (value) =>
+  `₹${Number(value || 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+const formatDate = (value) => {
+  if (!value) return '—';
+  const date = new Date(value);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [mode, setMode] = useState('login');
   const [form, setForm] = useState(initialForm);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState({ text: '', type: 'info' });
   const [loans, setLoans] = useState([]);
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [emis, setEmis] = useState([]);
-  const [loanForm, setLoanForm] = useState({ principal: '', annualInterestRate: '', termMonths: '', startDate: '' });
+  const [loanForm, setLoanForm] = useState(initialLoanForm);
+  const [page, setPage] = useState('dashboard');
 
   useEffect(() => {
     api.profile()
@@ -25,12 +42,36 @@ export default function App() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!message.text) return undefined;
+    const timeout = setTimeout(() => setMessage({ text: '', type: 'info' }), 5000);
+    return () => clearTimeout(timeout);
+  }, [message.text]);
+
   const loanStats = useMemo(() => {
     const totalLoans = loans.length;
     const activeLoans = loans.filter((loan) => loan.status === 'active').length;
     const completedLoans = loans.filter((loan) => loan.status === 'completed').length;
-    const outstandingBalance = loans.reduce((sum, loan) => sum + Number(loan.principal || 0), 0);
+    const outstandingBalance = loans.reduce((sum, loan) => sum + Number(loan.remainingBalance || 0), 0);
     return { totalLoans, activeLoans, completedLoans, outstandingBalance };
+  }, [loans]);
+
+  const analytics = useMemo(() => {
+    const totalPaid = loans.reduce((sum, loan) => sum + Number(loan.totalPaid || 0), 0);
+    const totalRemaining = loans.reduce((sum, loan) => sum + Number(loan.remainingBalance || 0), 0);
+    const totalDebt = totalPaid + totalRemaining;
+    const paidPercent = totalDebt ? Math.round((totalPaid / totalDebt) * 100) : 0;
+    const debtFreeDate = loans
+      .filter((loan) => loan.remainingBalance > 0 && loan.debtFreeDate)
+      .map((loan) => new Date(loan.debtFreeDate))
+      .sort((a, b) => a - b)
+      .pop();
+    return {
+      totalPaid,
+      totalRemaining,
+      paidPercent,
+      debtFreeDate: debtFreeDate ? formatDate(debtFreeDate) : 'Cleared',
+    };
   }, [loans]);
 
   const handleInput = (event) => {
@@ -43,22 +84,24 @@ export default function App() {
     setLoanForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const showMessage = (text, type = 'info') => {
+    setMessage({ text, type });
+  };
+
   const submitAuth = async (event) => {
     event.preventDefault();
-    setMessage('');
+    showMessage('');
 
     try {
-      let data;
-      if (mode === 'login') {
-        data = await api.login(form);
-      } else {
-        data = await api.register(form);
-      }
+      const data = mode === 'login' ? await api.login(form) : await api.register(form);
       setUser(data.user);
       setForm(initialForm);
+      setSelectedLoan(null);
+      setEmis([]);
       loadLoans();
+      showMessage(`${mode === 'login' ? 'Signed in' : 'Account created'} successfully`, 'success');
     } catch (error) {
-      setMessage(error.message || 'Authentication failed');
+      showMessage(error.message || 'Authentication failed', 'error');
     }
   };
 
@@ -67,30 +110,37 @@ export default function App() {
       const data = await api.getLoans();
       setLoans(data.loans);
     } catch (error) {
-      setMessage(error.message || 'Failed to load loans');
+      showMessage(error.message || 'Failed to load loans', 'error');
     }
   };
 
   const submitLoan = async (event) => {
     event.preventDefault();
-    setMessage('');
+    showMessage('');
+
     try {
-      const data = await api.createLoan(loanForm);
+      const loanPayload = {
+        principal: Number(loanForm.principal),
+        termMonths: Number(loanForm.termMonths),
+        startDate: loanForm.startDate || undefined,
+      };
+
+      const data = await api.createLoan(loanPayload);
       setLoans((prev) => [data.loan, ...prev]);
-      setLoanForm({ principal: '', annualInterestRate: '', termMonths: '', startDate: '' });
-      setMessage('Loan created successfully');
+      setLoanForm(initialLoanForm);
+      showMessage('Loan created successfully', 'success');
     } catch (error) {
-      setMessage(error.message || 'Failed to create loan');
+      showMessage(error.message || 'Failed to create loan', 'error');
     }
   };
 
-  const loadEmis = async (loanId) => {
+  const loadEmis = async (loan) => {
     try {
-      const data = await api.getEmisByLoan(loanId);
-      setSelectedLoan(loanId);
+      const data = await api.getEmisByLoan(loan._id);
+      setSelectedLoan({ ...loan, ...data.loan });
       setEmis(data.emis);
     } catch (error) {
-      setMessage(error.message || 'Failed to load EMIs');
+      showMessage(error.message || 'Failed to load EMIs', 'error');
     }
   };
 
@@ -98,10 +148,39 @@ export default function App() {
     try {
       const data = await api.payEmi(emiId);
       setEmis((prev) => prev.map((emi) => (emi._id === emiId ? data.emi : emi)));
-      setMessage('EMI paid successfully');
-      loadLoans();
+      setSelectedLoan((prev) =>
+        prev
+          ? {
+              ...prev,
+              remainingBalance: data.remainingBalance ?? prev.remainingBalance,
+              status: data.loanStatus || prev.status,
+            }
+          : prev,
+      );
+      await loadLoans();
+      if (selectedLoan) {
+        await loadEmis(selectedLoan);
+      }
+      showMessage('EMI marked as paid', 'success');
     } catch (error) {
-      setMessage(error.message || 'Failed to pay EMI');
+      showMessage(error.message || 'Failed to update EMI status', 'error');
+    }
+  };
+
+  const deleteLoan = async (loanId) => {
+    const confirmed = window.confirm('Delete this loan and all its EMI schedule?');
+    if (!confirmed) return;
+
+    try {
+      await api.deleteLoan(loanId);
+      setLoans((prev) => prev.filter((loan) => loan._id !== loanId));
+      if (selectedLoan?.id === loanId || selectedLoan?._id === loanId) {
+        setSelectedLoan(null);
+        setEmis([]);
+      }
+      showMessage('Loan deleted successfully', 'success');
+    } catch (error) {
+      showMessage(error.message || 'Failed to delete loan', 'error');
     }
   };
 
@@ -111,6 +190,7 @@ export default function App() {
     setLoans([]);
     setEmis([]);
     setSelectedLoan(null);
+    setPage('dashboard');
   };
 
   return (
@@ -122,19 +202,29 @@ export default function App() {
           <p className="hero-copy">Manage loans, payments, and EMI schedules with confidence.</p>
         </div>
         {user && (
-          <div className="account-panel">
-            <div>
-              <span className="small-label">Signed in as</span>
-              <p>{user.name}</p>
+          <>
+            <div className="account-panel">
+              <div>
+                <span className="small-label">Signed in as</span>
+                <p>{user.name}</p>
+              </div>
+              <button className="secondary-button" onClick={logout}>
+                Logout
+              </button>
             </div>
-            <button className="secondary-button" onClick={logout}>
-              Logout
-            </button>
-          </div>
+            <div className="page-tabs">
+              <button className={`tab-button ${page === 'dashboard' ? 'active' : ''}`} onClick={() => setPage('dashboard')}>
+                Dashboard
+              </button>
+              <button className={`tab-button ${page === 'analytics' ? 'active' : ''}`} onClick={() => setPage('analytics')}>
+                Analytics
+              </button>
+            </div>
+          </>
         )}
       </header>
 
-      {message && <div className="message">{message}</div>}
+      {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
 
       {!user ? (
         <section className="card auth-card">
@@ -174,27 +264,29 @@ export default function App() {
           </div>
         </section>
       ) : (
-        <main className="dashboard">
-          <section className="summary-panel">
-            <article className="summary-card">
-              <span className="eyebrow">Active loans</span>
-              <h3>{loanStats.activeLoans}</h3>
-            </article>
-            <article className="summary-card">
-              <span className="eyebrow">Total loans</span>
-              <h3>{loanStats.totalLoans}</h3>
-            </article>
-            <article className="summary-card">
-              <span className="eyebrow">Completed loans</span>
-              <h3>{loanStats.completedLoans}</h3>
-            </article>
-            <article className="summary-card">
-              <span className="eyebrow">Outstanding balance</span>
-              <h3>₹{loanStats.outstandingBalance.toLocaleString()}</h3>
-            </article>
-          </section>
+        <main className={page === 'dashboard' ? 'dashboard' : 'analytics-page'}>
+          {page === 'dashboard' ? (
+            <>
+              <section className="summary-panel">
+                <article className="summary-card">
+                  <span className="eyebrow">Active loans</span>
+                  <h3>{loanStats.activeLoans}</h3>
+                </article>
+                <article className="summary-card">
+                  <span className="eyebrow">Total loans</span>
+                  <h3>{loanStats.totalLoans}</h3>
+                </article>
+                <article className="summary-card">
+                  <span className="eyebrow">Completed loans</span>
+                  <h3>{loanStats.completedLoans}</h3>
+                </article>
+                <article className="summary-card">
+                  <span className="eyebrow">Outstanding balance</span>
+                  <h3>{formatCurrency(loanStats.outstandingBalance)}</h3>
+                </article>
+              </section>
 
-          <section className="panel-grid">
+              <section className="panel-grid">
             <article className="card panel-card">
               <div className="section-title-row">
                 <div>
@@ -205,16 +297,26 @@ export default function App() {
 
               <form onSubmit={submitLoan} className="grid-form">
                 <label className="field-label">
-                  Principal amount
-                  <input name="principal" type="number" value={loanForm.principal} onChange={handleLoanInput} placeholder="15000" required />
+                  Total loan amount
+                  <input
+                    name="principal"
+                    type="number"
+                    value={loanForm.principal}
+                    onChange={handleLoanInput}
+                    placeholder="15000"
+                    required
+                  />
                 </label>
                 <label className="field-label">
-                  Annual interest rate
-                  <input name="annualInterestRate" type="number" step="0.01" value={loanForm.annualInterestRate} onChange={handleLoanInput} placeholder="12.5" required />
-                </label>
-                <label className="field-label">
-                  Term (months)
-                  <input name="termMonths" type="number" value={loanForm.termMonths} onChange={handleLoanInput} placeholder="24" required />
+                  Number of months
+                  <input
+                    name="termMonths"
+                    type="number"
+                    value={loanForm.termMonths}
+                    onChange={handleLoanInput}
+                    placeholder="12"
+                    required
+                  />
                 </label>
                 <label className="field-label">
                   Start date
@@ -241,24 +343,29 @@ export default function App() {
                   {loans.map((loan) => (
                     <div key={loan._id} className="loan-item">
                       <div className="loan-details">
-                        <span className="loan-label">Principal</span>
-                        <strong>${loan.principal.toLocaleString()}</strong>
+                        <span className="loan-label">Loan amount</span>
+                        <strong>{formatCurrency(loan.principal)}</strong>
                       </div>
                       <div className="loan-details">
-                        <span className="loan-label">Rate</span>
-                        <strong>{loan.annualInterestRate}%</strong>
+                        <span className="loan-label">Monthly EMI</span>
+                        <strong>{formatCurrency(loan.monthlyEmi)}</strong>
                       </div>
                       <div className="loan-details">
-                        <span className="loan-label">Term</span>
-                        <strong>{loan.termMonths} months</strong>
+                        <span className="loan-label">Remaining</span>
+                        <strong>{formatCurrency(loan.remainingBalance)}</strong>
                       </div>
                       <div className="loan-details">
                         <span className="loan-label">Status</span>
                         <strong>{loan.status}</strong>
                       </div>
-                      <button className="secondary-button" onClick={() => loadEmis(loan._id)}>
-                        View EMIs
-                      </button>
+                      <div className="loan-actions">
+                        <button className="secondary-button" onClick={() => loadEmis(loan)}>
+                          View EMIs
+                        </button>
+                        <button className="secondary-button delete-button" onClick={() => deleteLoan(loan._id)}>
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -275,6 +382,27 @@ export default function App() {
                 </div>
               </div>
 
+              <div className="loan-summary-grid">
+                <div className="loan-summary-card">
+                  <span className="loan-label">Loan amount</span>
+                  <strong>{formatCurrency(selectedLoan.principal)}</strong>
+                </div>
+                <div className="loan-summary-card">
+                  <span className="loan-label">Monthly EMI</span>
+                  <strong>{formatCurrency(selectedLoan.monthlyEmi)}</strong>
+                </div>
+                <div className="loan-summary-card">
+                  <span className="loan-label">Remaining balance</span>
+                  <strong>{formatCurrency(selectedLoan.remainingBalance)}</strong>
+                </div>
+                <div className="loan-summary-card">
+                  <span className="loan-label">Next payment</span>
+                  <strong>
+                    {selectedLoan.nextDueDate ? formatDate(selectedLoan.nextDueDate) : 'No upcoming payment'}
+                  </strong>
+                </div>
+              </div>
+
               {emis.length === 0 ? (
                 <p className="empty-state">No EMI schedule found for this loan.</p>
               ) : (
@@ -282,12 +410,12 @@ export default function App() {
                   {emis.map((emi) => (
                     <div key={emi._id} className={`emi-item ${emi.paid ? 'paid' : ''}`}>
                       <div className="emi-row">
-                        <span className="loan-label">Amount</span>
-                        <strong>${emi.amount.toFixed(2)}</strong>
+                        <span className="loan-label">Payment #{emi.paymentNumber}</span>
+                        <strong>{formatCurrency(emi.amount)}</strong>
                       </div>
                       <div className="emi-row">
                         <span className="loan-label">Due date</span>
-                        <strong>{new Date(emi.dueDate).toLocaleDateString()}</strong>
+                        <strong>{formatDate(emi.dueDate)}</strong>
                       </div>
                       <div className="emi-row">
                         <span className="loan-label">Status</span>
@@ -295,7 +423,7 @@ export default function App() {
                       </div>
                       {!emi.paid && (
                         <button className="secondary-button" onClick={() => payEmi(emi._id)}>
-                          Pay now
+                          Mark as paid
                         </button>
                       )}
                     </div>
@@ -304,7 +432,84 @@ export default function App() {
               )}
             </section>
           )}
-        </main>
+        </>
+      ) : (
+        <>
+          <section className="analytics-panel">
+            <article className="card chart-card">
+              <div className="chart-header">
+                <div>
+                  <span className="eyebrow">Portfolio analysis</span>
+                  <h2>Paid vs remaining</h2>
+                </div>
+                <div className="chart-value">{analytics.paidPercent}% paid</div>
+              </div>
+              <div className="chart-content">
+                <svg viewBox="0 0 120 120" className="donut-chart">
+                  <circle className="donut-ring" cx="60" cy="60" r="52" />
+                  <circle
+                    className="donut-segment"
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    style={{
+                      strokeDasharray: `${2 * Math.PI * 52}`,
+                      strokeDashoffset: `${2 * Math.PI * 52 * (1 - analytics.paidPercent / 100)}`,
+                    }}
+                  />
+                  <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="donut-text">
+                    {analytics.paidPercent}%
+                  </text>
+                </svg>
+                <div className="chart-legend">
+                  <div>
+                    <span className="legend-dot paid" />
+                    <span>Paid</span>
+                    <strong>{formatCurrency(analytics.totalPaid)}</strong>
+                  </div>
+                  <div>
+                    <span className="legend-dot remaining" />
+                    <span>Remaining</span>
+                    <strong>{formatCurrency(analytics.totalRemaining)}</strong>
+                  </div>
+                </div>
+              </div>
+            </article>
+            <article className="card chart-card">
+              <div className="chart-header">
+                <div>
+                  <span className="eyebrow">Debt free projection</span>
+                  <h2>Debt free by</h2>
+                </div>
+              </div>
+              <div className="chart-summary">
+                <p>{analytics.debtFreeDate}</p>
+                <p className="summary-note">Based on current schedules across all active loans.</p>
+              </div>
+            </article>
+          </section>
+
+          <section className="summary-panel">
+            <article className="summary-card">
+              <span className="eyebrow">Total paid</span>
+              <h3>{formatCurrency(analytics.totalPaid)}</h3>
+            </article>
+            <article className="summary-card">
+              <span className="eyebrow">Total remaining</span>
+              <h3>{formatCurrency(analytics.totalRemaining)}</h3>
+            </article>
+            <article className="summary-card">
+              <span className="eyebrow">Active loans</span>
+              <h3>{loanStats.activeLoans}</h3>
+            </article>
+            <article className="summary-card">
+              <span className="eyebrow">Completed loans</span>
+              <h3>{loanStats.completedLoans}</h3>
+            </article>
+          </section>
+        </>
+      )}
+    </main>
       )}
     </div>
   );

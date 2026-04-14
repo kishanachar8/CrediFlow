@@ -7,6 +7,9 @@ const emiSchema = new mongoose.Schema(
     dueDate: { type: Date, required: true },
     paid: { type: Boolean, default: false },
     paidAt: { type: Date },
+    interestAmount: { type: Number, default: 0 },
+    principalAmount: { type: Number, default: 0 },
+    balance: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

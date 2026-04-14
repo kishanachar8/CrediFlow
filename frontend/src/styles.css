@@ -93,9 +93,25 @@ h1 {
 .message {
   margin-bottom: 20px;
   padding: 18px 22px;
-  background: rgba(15, 23, 42, 0.98);
-  border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.message.info {
+  background: rgba(15, 23, 42, 0.98);
+  color: #e5e7eb;
+}
+
+.message.success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #a7f3d0;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.message.error {
+  background: rgba(244, 63, 94, 0.12);
+  color: #fecdd3;
+  border-color: rgba(244, 63, 94, 0.4);
 }
 
 .card {
@@ -163,12 +179,13 @@ button {
   border-radius: 14px;
   padding: 14px 18px;
   font-weight: 600;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .primary-button {
   background: linear-gradient(135deg, #5b7fff, #2d66ff);
   color: white;
+  box-shadow: 0 16px 30px rgba(45, 102, 255, 0.18);
 }
 
 .primary-button:hover {
@@ -185,6 +202,16 @@ button {
 .secondary-button:hover {
   background: rgba(255, 255, 255, 0.12);
   transform: translateY(-1px);
+}
+
+.delete-button {
+  border-color: rgba(248, 113, 113, 0.28);
+  color: #fee2e2;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.delete-button:hover {
+  background: rgba(248, 113, 113, 0.18);
 }
 
 .link-button {
@@ -218,6 +245,105 @@ button {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
+.analytics-panel {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.chart-card {
+  padding: 24px;
+  border-radius: 24px;
+  background: rgba(12, 21, 40, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.chart-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.chart-content {
+  display: grid;
+  gap: 20px;
+  align-items: center;
+}
+
+.donut-chart {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+}
+
+.donut-ring,
+.donut-segment {
+  fill: transparent;
+  stroke-width: 14;
+}
+
+.donut-ring {
+  stroke: rgba(148, 163, 184, 0.2);
+}
+
+.donut-segment {
+  stroke: #5b7fff;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+.donut-text {
+  fill: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.chart-legend {
+  display: grid;
+  gap: 12px;
+}
+
+.chart-legend div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.legend-dot.paid {
+  background: #5b7fff;
+}
+
+.legend-dot.remaining {
+  background: #60a5fa;
+}
+
+.chart-summary {
+  display: grid;
+  gap: 10px;
+}
+
+.summary-note {
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
 .summary-card {
   padding: 22px;
   border-radius: 20px;
@@ -246,10 +372,38 @@ button {
   margin-bottom: 18px;
 }
 
+.loan-summary-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-bottom: 20px;
+}
+
+.loan-summary-card {
+  background: rgba(12, 21, 40, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 18px;
+  padding: 18px;
+  min-height: 110px;
+}
+
+.loan-summary-card strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 1.3rem;
+}
+
 .loan-label {
   display: block;
   color: #94a3b8;
   font-size: 0.88rem;
+}
+
+.loan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
 }
 
 .loans-list,
@@ -261,11 +415,19 @@ button {
 .loan-item,
 .emi-item {
   display: grid;
-  gap: 12px;
-  padding: 18px;
-  border-radius: 20px;
-  background: rgba(11, 19, 37, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.14);
+  gap: 16px;
+  padding: 22px;
+  border-radius: 22px;
+  background: rgba(11, 19, 37, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.loan-item:hover,
+.emi-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(148, 163, 184, 0.3);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
 }
 
 .loan-details,
@@ -314,4 +476,38 @@ button {
   .grid-form .field-label:nth-child(4) {
     grid-column: span 2;
   }
+}
+
+.page-tabs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.tab-button {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e5e7eb;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.tab-button.active,
+.tab-button:hover {
+  background: rgba(91, 123, 255, 0.18);
+  border-color: rgba(91, 123, 255, 0.35);
+}
+
+.analytics-page {
+  display: grid;
+  gap: 24px;
+}
+
+.analytics-page .analytics-panel,
+.analytics-page .summary-panel {
+  margin-top: 0;
 }

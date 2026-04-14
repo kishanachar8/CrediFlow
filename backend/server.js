@@ -19,7 +19,8 @@ const PORT = process.env.PORT || 6000;
 
 dbConfig();
 
-app.use(cors({ origin: true, credentials: true }));
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+app.use(cors({ origin: CLIENT_ORIGIN, credentials: true }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -31,6 +32,10 @@ app.use(
     secret: process.env.SESSION_SECRET || 'crediflow-secret',
     resave: false,
     saveUninitialized: false,
+    cookie: {
+      sameSite: 'lax',   
+      secure: false,     
+    },
   })
 );
 

@@ -9,7 +9,10 @@ exports.getEmisByLoan = async (req, res) => {
     }
 
     const emis = await EMI.find({ loan: loan.id }).sort({ dueDate: 1 });
-    res.json({ emis });
+    const totalPaid = emis.filter((emi) => emi.paid).reduce((sum, emi) => sum + emi.amount, 0);
+    const remainingBalance = emis.filter((emi) => !emi.paid).reduce((sum, emi) => sum + emi.amount, 0);
+
+    res.json({ loan: loan.toObject(), emis, totalPaid, remainingBalance });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -29,13 +32,14 @@ exports.payEmi = async (req, res) => {
     emi.paidAt = new Date();
     await emi.save();
 
-    const remainingEmis = await EMI.countDocuments({ loan: emi.loan.id, paid: false });
-    if (remainingEmis === 0) {
+    const remainingEmis = await EMI.find({ loan: emi.loan.id, paid: false });
+    if (remainingEmis.length === 0) {
       emi.loan.status = 'completed';
       await emi.loan.save();
     }
 
-    res.json({ emi });
+    const remainingBalance = remainingEmis.reduce((sum, item) => sum + item.amount, 0);
+    res.json({ emi, loanStatus: emi.loan.status, remainingBalance });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
