@@ -1,3 +1,7 @@
+/* @tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   color-scheme: dark;
   font-family: Inter, system-ui, sans-serif;
@@ -100,7 +104,7 @@ h1 {
 
 .header-actions {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 20px;
   width: 100%;
@@ -113,6 +117,16 @@ h1 {
   align-items: center;
 }
 
+.header-nav .nav-item {
+  width: auto;
+  min-width: 120px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e5e7eb;
+}
+
 .account-panel {
   display: flex;
   align-items: center;
@@ -120,11 +134,12 @@ h1 {
   width: auto;
 }
 
-.header-nav .nav-item {
-  width: auto;
-  min-width: 120px;
-  padding: 13px 20px;
-  border-radius: 999px;
+.mobile-only {
+  display: inline-grid;
+}
+
+.desktop-only {
+  display: none;
 }
 
 .account-panel {
@@ -152,22 +167,18 @@ h1 {
 }
 
 .profile-toggle {
-  position: absolute;
-  top: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   border-radius: 999px;
-  background: linear-gradient(145deg, rgba(103, 128, 255, 0.22), rgba(56, 189, 248, 0.18));
-  border: 1px solid rgba(97, 107, 255, 0.45);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   display: grid;
   place-items: center;
   padding: 0;
   color: #f8fbff;
   font-weight: 700;
-  font-size: 1.2rem;
+  font-size: 1.05rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  z-index: 12;
 }
 
 .profile-toggle:hover,
@@ -199,8 +210,8 @@ h1 {
   padding: 22px 18px 16px;
   margin-top: 18px;
   border-radius: 26px;
-  background: rgba(10, 18, 34, 0.96);
-  border: 1px solid rgba(103, 128, 255, 0.16);
+  background: rgba(12, 20, 36, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 28px 60px rgba(18, 31, 71, 0.22);
 }
 
@@ -641,9 +652,32 @@ button {
     gap: 18px;
   }
 
+  .brand-block {
+    width: 100%;
+  }
+
+  .header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
   .account-panel {
     flex-wrap: wrap;
     justify-content: space-between;
+    width: 100%;
+  }
+
+  .header-nav {
+    display: none;
+  }
+
+  .nav-menu {
+    width: 100%;
+  }
+
+  .nav-menu.open {
+    max-height: 100vh;
   }
 
   .page-tabs {
@@ -669,6 +703,10 @@ button {
   .field-label {
     gap: 10px;
     font-size: 0.92rem;
+  }
+
+  .field-label input {
+    padding: 12px 14px;
   }
 
   .panel-grid,
@@ -708,6 +746,10 @@ button {
     align-items: stretch;
   }
 
+  .loan-actions button {
+    width: 100%;
+  }
+
   .page-header-row {
     flex-direction: column;
     align-items: stretch;
@@ -716,6 +758,14 @@ button {
 }
 
 @media (min-width: 720px) {
+  .desktop-only {
+    display: inline-flex;
+  }
+
+  .mobile-only {
+    display: none;
+  }
+
   .app-header {
     grid-template-columns: 1.5fr 0.9fr;
     align-items: center;
@@ -801,4 +851,4 @@ button {
 
 .loan-detail-page .loan-summary-grid {
   margin-bottom: 0;
-}
+} */

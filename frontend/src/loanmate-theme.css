@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Colors - Kept your excellent palette */
+  --bg-color: #f0f4ff;
+  --surface: #ffffff;
+  --surface-strong: #f8f9ff;
+  --surface-muted: #f1f5ff;
+  --card-bg: #ffffff;
+  --card-border: #e5e7f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --primary-color: #4f46e5;
+  --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --border: #e5e7f0;
+  --shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+  
+  /* Radii - Switched to more aggressive curves for the premium look */
+  --radius-xl: 32px;
+  --header-height: 80px;
+}
+
+html.dark {
+  --bg-color: #060b1d;
+  --surface: #0f172a;
+  --surface-strong: rgba(15, 23, 42, 0.95);
+  --text-primary: #f8fafc;
+  --border: #334155;
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Inter, system-ui, sans-serif;
+  /* Updated background for a wider perspective */
+  background: 
+    radial-gradient(circle at 10% 10%, rgba(79, 70, 229, 0.05), transparent 30%),
+    radial-gradient(circle at 90% 90%, rgba(124, 58, 237, 0.05), transparent 30%),
+    var(--bg-color);
+  color: var(--text-primary);
+  overflow-x: hidden; /* Prevents unwanted horizontal scrolling */
+}
+
+/* * CRITICAL FIX: 
+ * Removed the 600px width cap to allow full screen expansion.
+ */
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Smooth Transitions for Theme Toggling */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Custom Scrollbar for the Premium Feel */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(var(--surface), 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}

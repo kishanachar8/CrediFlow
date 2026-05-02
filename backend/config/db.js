@@ -1,10 +1,9 @@
 const mongoose = require('mongoose');
+const config = require('./env');
 
 const connectDB = async () => {
-  const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/crediflow';
-
   try {
-    await mongoose.connect(uri, {
+    await mongoose.connect(config.mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });

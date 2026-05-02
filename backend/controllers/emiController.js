@@ -1,14 +1,16 @@
-const EMI = require('../models/EMI');
-const Loan = require('../models/Loan');
+const emiRepository = require('../repositories/emiRepository');
+const loanRepository = require('../repositories/loanRepository');
 
-exports.getEmisByLoan = async (req, res) => {
+exports.getEmisByLoan = async (req, res, next) => {
   try {
-    const loan = await Loan.findOne({ _id: req.params.loanId, user: req.user.id });
+    const loan = await loanRepository.findByIdAndUser(req.params.loanId, req.user.userId);
     if (!loan) {
-      return res.status(404).json({ message: 'Loan not found' });
+      const error = new Error('Loan not found');
+      error.status = 404;
+      return next(error);
     }
 
-    const emis = await EMI.find({ loan: loan.id }).sort({ dueDate: 1 });
+    const emis = await emiRepository.findByLoan(loan.id);
     const totalPaid = emis.filter((emi) => emi.paid).reduce((sum, emi) => sum + emi.amount, 0);
     const remainingBalance = emis.filter((emi) => !emi.paid).reduce((sum, emi) => sum + emi.amount, 0);
 
@@ -23,25 +25,29 @@ exports.getEmisByLoan = async (req, res) => {
       remainingBalance,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-exports.payEmi = async (req, res) => {
+exports.payEmi = async (req, res, next) => {
   try {
-    const emi = await EMI.findById(req.params.emiId).populate('loan');
-    if (!emi || emi.loan.user.toString() !== req.user.id) {
-      return res.status(404).json({ message: 'EMI not found' });
+    const emi = await emiRepository.findById(req.params.emiId);
+    if (!emi || !emi.loan || emi.loan.user.toString() !== req.user.userId) {
+      const error = new Error('EMI not found');
+      error.status = 404;
+      return next(error);
     }
     if (emi.paid) {
-      return res.status(400).json({ message: 'EMI already paid' });
+      const error = new Error('EMI already paid');
+      error.status = 400;
+      return next(error);
     }
 
     emi.paid = true;
     emi.paidAt = new Date();
     await emi.save();
 
-    const remainingEmis = await EMI.find({ loan: emi.loan.id, paid: false });
+    const remainingEmis = await emiRepository.findUnpaidByLoan(emi.loan.id);
     if (remainingEmis.length === 0) {
       emi.loan.status = 'completed';
       await emi.loan.save();
@@ -50,6 +56,6 @@ exports.payEmi = async (req, res) => {
     const remainingBalance = remainingEmis.reduce((sum, item) => sum + item.amount, 0);
     res.json({ emi, loanStatus: emi.loan.status, remainingBalance });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };

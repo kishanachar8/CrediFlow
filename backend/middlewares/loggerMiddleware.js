@@ -1,14 +1,15 @@
-const logger = (req, res, next) => {
+const logger = require('../utils/logger');
+
+const requestLogger = (req, res, next) => {
   const { method, originalUrl, body } = req;
-  const timestamp = new Date().toISOString();
   const safeBody = { ...body };
 
   if (safeBody.password) {
     safeBody.password = '*****';
   }
 
-  console.log(`[${timestamp}] ${method} ${originalUrl} - body: ${JSON.stringify(safeBody)}`);
+  logger.info('%s %s - body: %s', method, originalUrl, JSON.stringify(safeBody));
   next();
 };
 
-module.exports = logger;
+module.exports = requestLogger;

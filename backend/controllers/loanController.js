@@ -1,9 +1,9 @@
-const Loan = require('../models/Loan');
-const EMI = require('../models/EMI');
 const emiService = require('../services/emiService');
+const loanRepository = require('../repositories/loanRepository');
+const emiRepository = require('../repositories/emiRepository');
 
 const buildLoanSummary = async (loan) => {
-  const emis = await EMI.find({ loan: loan._id }).sort({ dueDate: 1 });
+  const emis = await emiRepository.findByLoan(loan._id);
   const paidEmis = emis.filter((emi) => emi.paid);
   const unpaidEmis = emis.filter((emi) => !emi.paid);
   const nextEmi = unpaidEmis[0];
@@ -34,7 +34,7 @@ const buildLoanSummary = async (loan) => {
   };
 };
 
-exports.createLoan = async (req, res) => {
+exports.createLoan = async (req, res, next) => {
   try {
     const rawPrincipal = Number(req.body.principal || 0);
     const monthlyEmi = Number(req.body.monthlyEmi || 0);
@@ -43,15 +43,10 @@ exports.createLoan = async (req, res) => {
     const annualInterestRate = 0;
 
     const principal = rawPrincipal || (monthlyEmi && termMonths ? monthlyEmi * termMonths : 0);
-
-    if ((!principal && !monthlyEmi) || !termMonths) {
-      return res.status(400).json({ message: 'Please provide the monthly EMI amount and number of months.' });
-    }
-
     const calculatedEmi = monthlyEmi || emiService.calculateMonthlyEmi(principal, annualInterestRate, termMonths);
 
-    const loan = await Loan.create({
-      user: req.user.id,
+    const loan = await loanRepository.createLoan({
+      user: req.user.userId,
       principal,
       annualInterestRate,
       termMonths,
@@ -60,48 +55,52 @@ exports.createLoan = async (req, res) => {
     });
 
     const schedule = emiService.generateEmiSchedule(loan);
-    await EMI.insertMany(schedule.map((item) => ({ loan: loan.id, ...item })));
+    await emiRepository.createMany(schedule.map((item) => ({ loan: loan.id, ...item })));
 
     res.status(201).json({ loan: await buildLoanSummary(loan), schedule });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-exports.getLoans = async (req, res) => {
+exports.getLoans = async (req, res, next) => {
   try {
-    const loans = await Loan.find({ user: req.user.id }).sort({ createdAt: -1 });
+    const loans = await loanRepository.findByUser(req.user.userId);
     const loansWithSummary = await Promise.all(loans.map(buildLoanSummary));
     res.json({ loans: loansWithSummary });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-exports.getLoanById = async (req, res) => {
+exports.getLoanById = async (req, res, next) => {
   try {
-    const loan = await Loan.findOne({ _id: req.params.id, user: req.user.id });
+    const loan = await loanRepository.findByIdAndUser(req.params.id, req.user.userId);
     if (!loan) {
-      return res.status(404).json({ message: 'Loan not found' });
+      const error = new Error('Loan not found');
+      error.status = 404;
+      return next(error);
     }
     res.json({ loan: await buildLoanSummary(loan) });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-exports.deleteLoan = async (req, res) => {
+exports.deleteLoan = async (req, res, next) => {
   try {
-    const loan = await Loan.findOne({ _id: req.params.id, user: req.user.id });
+    const loan = await loanRepository.findByIdAndUser(req.params.id, req.user.userId);
     if (!loan) {
-      return res.status(404).json({ message: 'Loan not found' });
+      const error = new Error('Loan not found');
+      error.status = 404;
+      return next(error);
     }
 
-    await EMI.deleteMany({ loan: loan._id });
-    await loan.deleteOne();
+    await emiRepository.deleteManyByLoan(loan._id);
+    await loanRepository.deleteLoan(loan);
 
     res.json({ message: 'Loan deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
