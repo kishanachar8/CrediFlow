@@ -58,3 +58,9 @@ exports.rotateRefreshToken = async (oldTokenId, user) => {
   });
   return { refreshToken, replacedByToken };
 };
+
+exports.authenticateOAuth = async (user) => {
+  // User is already created or updated by the Google strategy in passport.js
+  // Just return the user as-is
+  return user;
+};

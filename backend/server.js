@@ -5,9 +5,12 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
+const passport = require('passport');
+const session = require('express-session');
 
 const config = require('./config/env');
 const dbConfig = require('./config/db');
+require('./config/passport');
 
 const loggerMiddleware = require('./middlewares/loggerMiddleware');
 const errorHandler = require('./middlewares/errorHandler');
@@ -31,6 +34,23 @@ app.use(cors({ origin: config.clientOrigin, credentials: true }));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Session configuration for Passport
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'crediflow-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: config.env === 'production',
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use(sanitizeRequest);
 app.use(loggerMiddleware);
 

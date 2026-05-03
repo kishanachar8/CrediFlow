@@ -1,9 +1,10 @@
 import React from 'react';
+import { GoogleLogin } from '@react-oauth/google';
 import { Button } from './ui/button.jsx';
 import { Card } from './ui/card'; // Using the Card we refactored earlier
 import { Mail, Lock, User, ArrowRight, Globe } from 'lucide-react';
 
-export function AuthView({ mode, setMode, form, handleInput, submitAuth }) {
+export function AuthView({ mode, setMode, form, handleInput, submitAuth, onGoogleSuccess, onGoogleError, googleEnabled }) {
   const isLogin = mode === 'login';
 
   return (
@@ -83,10 +84,36 @@ export function AuthView({ mode, setMode, form, handleInput, submitAuth }) {
         </div>
 
         {/* Social Auth */}
-        <Button variant="secondary" className="w-full gap-3 py-4 font-medium">
-          <Globe size={18} className="text-blue-500" />
-          Google Account
-        </Button>
+        <div className="w-full">
+          {googleEnabled ? (
+            <GoogleLogin
+              onSuccess={onGoogleSuccess}
+              onError={onGoogleError}
+              render={(renderProps) => (
+                <Button 
+                  type="button"
+                  variant="secondary" 
+                  className="w-full gap-3 py-4 font-medium"
+                  onClick={renderProps.onClick}
+                  disabled={renderProps.disabled}
+                >
+                  <Globe size={18} className="text-blue-500" />
+                  Google Account
+                </Button>
+              )}
+            />
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full gap-3 py-4 font-medium"
+              disabled
+            >
+              <Globe size={18} className="text-blue-500" />
+              Google login unavailable
+            </Button>
+          )}
+        </div>
 
         {/* Toggle link */}
         <p className="mt-8 text-center text-sm text-[var(--text-muted)]">

@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 // Features & Components
 import { api } from './api.js';
@@ -22,9 +23,14 @@ import {
 const INITIAL_FORM = { name: '', email: '', password: '' };
 const INITIAL_LOAN_FORM = { monthlyEmi: '', termMonths: '', startDate: '' };
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
+const GOOGLE_AUTH_CONFIGURED = Boolean(
+  GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID_HERE'
+);
+
 export default function App() {
   const dispatch = useDispatch();
-  
+
   // --- Global State ---
   const user = useSelector((state) => state.auth.user);
   const { loans, selectedLoan, emis } = useSelector((state) => state.loan);
@@ -37,7 +43,7 @@ export default function App() {
   const [message, setMessage] = useState({ text: '', type: 'info' });
   const [navOpen, setNavOpen] = useState(false);
 
-  // --- Theme Logic ---
+  // --- Theme ---
   const [theme, setTheme] = useState(() => {
     const stored = window.localStorage.getItem('crediflow-theme');
     return stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -49,7 +55,7 @@ export default function App() {
     window.localStorage.setItem('crediflow-theme', theme);
   }, [theme]);
 
-  // --- Derived State (Memoized for performance) ---
+  // --- Derived ---
   const loanStats = useMemo(() => {
     const active = loans.filter(l => l.status === 'active');
     return {
@@ -64,7 +70,7 @@ export default function App() {
     const totalPaid = loans.reduce((sum, l) => sum + Number(l.totalPaid || 0), 0);
     const totalRemaining = loans.reduce((sum, l) => sum + Number(l.remainingBalance || 0), 0);
     const totalDebt = totalPaid + totalRemaining;
-    
+
     const debtFreeDate = loans
       .filter(l => l.remainingBalance > 0 && l.debtFreeDate)
       .map(l => new Date(l.debtFreeDate))
@@ -79,7 +85,7 @@ export default function App() {
     };
   }, [loans]);
 
-  // --- Utility Actions ---
+  // --- Utils ---
   const showMessage = useCallback((text, type = 'info') => {
     setMessage({ text, type });
   }, []);
@@ -93,7 +99,7 @@ export default function App() {
     }
   }, [dispatch, showMessage]);
 
-  // --- Feature Handlers ---
+  // --- EMI ---
   const loadEmis = useCallback(async (loan) => {
     try {
       const data = await api.getEmisByLoan(loan._id);
@@ -106,29 +112,24 @@ export default function App() {
     }
   }, [dispatch, showMessage]);
 
-  /**
-   * Refactored payEmiHandler with Sequential Validation
-   */
   const payEmiHandler = useCallback(async (emiId) => {
     const targetEmi = emis.find(e => e._id === emiId);
-    
-    // VALIDATION: Check if any installment before this one is still unpaid
-    const hasUnpaidPrevious = emis.some(e => 
+    if (!targetEmi) return;
+
+    const hasUnpaidPrevious = emis.some(e =>
       e.paymentNumber < targetEmi.paymentNumber && !e.paid
     );
 
     if (hasUnpaidPrevious) {
-      showMessage('Installments must be paid in chronological order.', 'warning');
+      showMessage('Installments must be paid in order.', 'warning');
       return;
     }
 
     try {
       const data = await api.payEmi(emiId);
-      
-      // 1. Update EMI list (Optimistic UI)
+
       dispatch(setEmis(emis.map(e => e._id === emiId ? data.emi : e)));
-      
-      // 2. Optimistically update local loan balance for immediate UI feedback
+
       const updatedLoans = loans.map(loan => {
         if (loan._id === selectedLoan?._id) {
           return {
@@ -139,37 +140,65 @@ export default function App() {
         }
         return loan;
       });
-      dispatch(setLoans(updatedLoans));
 
-      await loadLoans(); // Background sync
-      showMessage('Payment Processed Successfully', 'success');
+      dispatch(setLoans(updatedLoans));
+      await loadLoans();
+
+      showMessage('Payment successful', 'success');
     } catch (err) {
       showMessage(err.message, 'error');
     }
   }, [emis, loans, selectedLoan, dispatch, loadLoans, showMessage]);
 
+  // --- Auth ---
   const handleAuth = async (e) => {
     e.preventDefault();
     try {
-      const data = mode === 'login' ? await api.login(form) : await api.register(form);
+      const data = mode === 'login'
+        ? await api.login(form)
+        : await api.register(form);
+
       api.setAccessToken(data.accessToken);
       dispatch(setUser(data.user));
       setForm(INITIAL_FORM);
-      await loadLoans();
+
       showMessage('Welcome to CrediFlow', 'success');
     } catch (err) {
       showMessage(err.message, 'error');
     }
   };
 
-  // --- Lifecycle Hooks ---
+  const handleGoogleSuccess = useCallback(async (credentialResponse) => {
+    try {
+      if (!credentialResponse?.credential) {
+        throw new Error('Invalid Google credential');
+      }
+
+      const data = await api.loginWithGoogle(credentialResponse.credential);
+
+      api.setAccessToken(data.accessToken);
+      dispatch(setUser(data.user));
+      setForm(INITIAL_FORM);
+
+      showMessage('Google login successful', 'success');
+    } catch (err) {
+      showMessage(err.message || 'Google authentication failed', 'error');
+    }
+  }, [dispatch, showMessage]);
+
+  const handleGoogleError = useCallback(() => {
+    showMessage('Google authentication failed', 'error');
+  }, [showMessage]);
+
+  // --- Init ---
   useEffect(() => {
     const init = async () => {
       try {
         await api.initAuth();
         const data = await api.profile();
         dispatch(setUser(data.user));
-      } catch {
+      } catch (err) {
+        console.error('Auth init failed:', err);
         dispatch(clearUser());
       }
     };
@@ -182,10 +211,11 @@ export default function App() {
 
   const activeLoans = useMemo(() => loans.filter(l => l.status === 'active'), [loans]);
 
-  return (
-    <div className="min-h-screen w-full bg-[var(--surface-strong)] transition-colors duration-500">
-      <div className="w-full max-w-none px-4 py-6 md:px-6 lg:px-12">
-        
+  // --- UI ---
+  const appMarkup = (
+    <div className="min-h-screen w-full bg-[var(--surface-strong)]">
+      <div className="px-6 py-6">
+
         <Header
           user={user}
           page={page}
@@ -198,27 +228,25 @@ export default function App() {
             await api.logout();
             dispatch(clearUser());
             dispatch(clearLoans());
-            setPage('dashboard');
           }}
         />
-        
-        <MessageBanner 
-          message={message} 
-          onClose={() => setMessage({ text: '', type: 'info' })} 
-        />
 
-        <main className="mt-8 w-full">
+        <MessageBanner message={message} onClose={() => setMessage({ text: '', type: 'info' })} />
+
+        <main className="mt-8">
           {!user ? (
-            <div className="flex justify-center items-center py-20">
-              <AuthView 
-                mode={mode} setMode={setMode} 
-                form={form} 
-                handleInput={(e) => setForm({ ...form, [e.target.name]: e.target.value })} 
-                submitAuth={handleAuth} 
-              />
-            </div>
+            <AuthView
+              mode={mode}
+              setMode={setMode}
+              form={form}
+              handleInput={(e) => setForm({ ...form, [e.target.name]: e.target.value })}
+              submitAuth={handleAuth}
+              onGoogleSuccess={handleGoogleSuccess}
+              onGoogleError={handleGoogleError}
+              googleEnabled={GOOGLE_AUTH_CONFIGURED}
+            />
           ) : (
-            <div className="w-full animate-in fade-in slide-in-from-bottom-2 duration-700">
+            <>
               {page === 'dashboard' && (
                 <DashboardView
                   loanStats={loanStats}
@@ -226,24 +254,18 @@ export default function App() {
                   handleLoanInput={(e) => setLoanForm({ ...loanForm, [e.target.name]: e.target.value })}
                   submitLoan={async (e) => {
                     e.preventDefault();
-                    try {
-                      const data = await api.createLoan({
-                        ...loanForm,
-                        principal: Number(loanForm.monthlyEmi) * Number(loanForm.termMonths)
-                      });
-                      dispatch(addLoan(data.loan));
-                      setLoanForm(INITIAL_LOAN_FORM);
-                      showMessage('Loan Account Created', 'success');
-                    } catch (err) { showMessage(err.message, 'error'); }
+                    const data = await api.createLoan({
+                      ...loanForm,
+                      principal: Number(loanForm.monthlyEmi) * Number(loanForm.termMonths)
+                    });
+                    dispatch(addLoan(data.loan));
+                    setLoanForm(INITIAL_LOAN_FORM);
                   }}
                   activeLoans={activeLoans}
                   loadEmis={loadEmis}
                   deleteLoan={async (id) => {
-                    if (window.confirm('Terminate this loan record?')) {
-                      await api.deleteLoan(id);
-                      dispatch(removeLoan(id));
-                      showMessage('Loan Deleted', 'success');
-                    }
+                    await api.deleteLoan(id);
+                    dispatch(removeLoan(id));
                   }}
                   formatCurrency={formatCurrency}
                 />
@@ -265,27 +287,16 @@ export default function App() {
                   setPage={setPage}
                 />
               )}
-            </div>
+            </>
           )}
         </main>
-
-        {user && (
-          <footer className="mt-24 pb-12 border-t border-[var(--border)] pt-10 flex justify-between items-center opacity-40">
-            <div className="flex flex-col gap-1">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
-                CrediFlow Systems
-              </p>
-              <p className="text-[9px] text-[var(--text-muted)] font-medium italic">
-                Secure Portfolio Management Dashboard
-              </p>
-            </div>
-            <div className="flex gap-8 text-[9px] font-black uppercase tracking-tighter">
-              <span className="flex items-center gap-1.5"><div className="w-1 h-1 rounded-full bg-emerald-500" /> API: Stable</span>
-              <span>&copy; 2026</span>
-            </div>
-          </footer>
-        )}
       </div>
     </div>
+  );
+
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || ''}>
+      {appMarkup}
+    </GoogleOAuthProvider>
   );
 }
