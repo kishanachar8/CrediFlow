@@ -4,6 +4,7 @@ const tokenService = require('../services/tokenService');
 const { OAuth2Client } = require('google-auth-library');
 const config = require('../config/env');
 const User = require('../models/User');
+const { sendSuccess } = require('../utils/responseHelper');
 
 const googleClient = new OAuth2Client(config.googleClientId);
 
@@ -23,7 +24,10 @@ exports.register = async (req, res, next) => {
     const user = await authService.register(req.body);
     const { accessToken, refreshToken } = await authService.issueTokens(user);
     sendRefreshTokenCookie(res, refreshToken);
-    res.status(201).json({ user: { id: user.id, name: user.name, email: user.email }, accessToken });
+    sendSuccess(res, 'Registration successful', {
+      user: { id: user.id, name: user.name, email: user.email },
+      accessToken,
+    }, 201);
   } catch (error) {
     next(error);
   }
@@ -34,7 +38,10 @@ exports.login = async (req, res, next) => {
     const user = await authService.authenticate(req.body);
     const { accessToken, refreshToken } = await authService.issueTokens(user);
     sendRefreshTokenCookie(res, refreshToken);
-    res.json({ user: { id: user.id, name: user.name, email: user.email }, accessToken });
+    sendSuccess(res, 'Login successful', {
+      user: { id: user.id, name: user.name, email: user.email },
+      accessToken,
+    });
   } catch (error) {
     next(error);
   }
@@ -62,7 +69,7 @@ exports.refresh = async (req, res, next) => {
     const accessToken = tokenService.createAccessToken({ userId: user.id, name: user.name, email: user.email });
     sendRefreshTokenCookie(res, refreshToken);
 
-    res.json({ accessToken });
+    sendSuccess(res, 'Token refreshed successfully', { accessToken });
   } catch (error) {
     if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
       error.status = 401;
@@ -83,7 +90,7 @@ exports.logout = async (req, res, next) => {
       sameSite: 'none',
       secure: config.env === 'production',
     });
-    res.json({ message: 'Logged out successfully' });
+    sendSuccess(res, 'Logged out successfully');
   } catch (error) {
     if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
       error.status = 401;
@@ -99,7 +106,9 @@ exports.profile = async (req, res, next) => {
       error.status = 401;
       throw error;
     }
-    res.json({ user: { id: req.user.userId, name: req.user.name, email: req.user.email } });
+    sendSuccess(res, 'Profile retrieved successfully', {
+      user: { id: req.user.userId, name: req.user.name, email: req.user.email },
+    });
   } catch (error) {
     next(error);
   }
@@ -109,6 +118,7 @@ exports.googleCallback = async (req, res, next) => {
   try {
     // User is already authenticated by Passport
     // This handler is called after successful Google OAuth authentication
+    res.set('X-Response-Message', 'Google authentication succeeded');
     res.redirect('/oauth-success');
   } catch (error) {
     next(error);
@@ -126,6 +136,7 @@ exports.googleCallbackRedirect = async (req, res, next) => {
 
     const { accessToken, refreshToken } = await authService.issueTokens(user);
     sendRefreshTokenCookie(res, refreshToken);
+    res.set('X-Response-Message', 'Google login successful');
     
     // Redirect to frontend with token (for SPA)
     const redirectUrl = `${config.clientOrigin || 'http://localhost:5173'}?accessToken=${accessToken}`;
@@ -147,9 +158,9 @@ exports.getGoogleCallbackToken = async (req, res, next) => {
     const { accessToken, refreshToken } = await authService.issueTokens(user);
     sendRefreshTokenCookie(res, refreshToken);
     
-    res.json({ 
+    sendSuccess(res, 'Google login successful', {
       user: { id: user.id, name: user.name, email: user.email, profilePicture: user.profilePicture },
-      accessToken 
+      accessToken,
     });
   } catch (error) {
     next(error);
@@ -212,9 +223,9 @@ exports.verifyGoogleToken = async (req, res, next) => {
     const { accessToken, refreshToken } = await authService.issueTokens(user);
     sendRefreshTokenCookie(res, refreshToken);
 
-    res.json({ 
+    sendSuccess(res, 'Google login successful', {
       user: { id: user.id, name: user.name, email: user.email, profilePicture: user.profilePicture },
-      accessToken 
+      accessToken,
     });
   } catch (error) {
     if (error.message.includes('Token used too late')) {

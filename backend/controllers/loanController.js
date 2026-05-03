@@ -1,6 +1,7 @@
 const emiService = require('../services/emiService');
 const loanRepository = require('../repositories/loanRepository');
 const emiRepository = require('../repositories/emiRepository');
+const { sendSuccess } = require('../utils/responseHelper');
 
 const buildLoanSummary = async (loan) => {
   const emis = await emiRepository.findByLoan(loan._id);
@@ -57,7 +58,10 @@ exports.createLoan = async (req, res, next) => {
     const schedule = emiService.generateEmiSchedule(loan);
     await emiRepository.createMany(schedule.map((item) => ({ loan: loan.id, ...item })));
 
-    res.status(201).json({ loan: await buildLoanSummary(loan), schedule });
+    sendSuccess(res, 'Loan created successfully', {
+      loan: await buildLoanSummary(loan),
+      schedule,
+    }, 201);
   } catch (error) {
     next(error);
   }
@@ -67,7 +71,7 @@ exports.getLoans = async (req, res, next) => {
   try {
     const loans = await loanRepository.findByUser(req.user.userId);
     const loansWithSummary = await Promise.all(loans.map(buildLoanSummary));
-    res.json({ loans: loansWithSummary });
+    sendSuccess(res, 'Loans retrieved successfully', { loans: loansWithSummary });
   } catch (error) {
     next(error);
   }
@@ -81,7 +85,7 @@ exports.getLoanById = async (req, res, next) => {
       error.status = 404;
       return next(error);
     }
-    res.json({ loan: await buildLoanSummary(loan) });
+    sendSuccess(res, 'Loan retrieved successfully', { loan: await buildLoanSummary(loan) });
   } catch (error) {
     next(error);
   }
@@ -99,7 +103,7 @@ exports.deleteLoan = async (req, res, next) => {
     await emiRepository.deleteManyByLoan(loan._id);
     await loanRepository.deleteLoan(loan);
 
-    res.json({ message: 'Loan deleted successfully' });
+    sendSuccess(res, 'Loan deleted successfully', { loanId: loan._id });
   } catch (error) {
     next(error);
   }

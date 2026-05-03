@@ -55,7 +55,7 @@ export function DashboardView({
       <div className="grid gap-10 lg:grid-cols-12">
         {/* Creation Form */}
         <section className="lg:col-span-5">
-          <Card className="p-8 sticky top-8">
+          <Card className="p-8 lg:sticky lg:top-8">
             <div className="mb-8">
               <h2 className="text-2xl font-bold flex items-center gap-3">
                 <PlusCircle className="text-blue-500" />

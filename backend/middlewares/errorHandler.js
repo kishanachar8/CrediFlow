@@ -6,5 +6,7 @@ module.exports = (err, req, res, next) => {
   const status = err.status || 500;
   const message = err.isJoi ? err.details.map((detail) => detail.message).join(', ') : err.message || 'Internal server error';
 
-  res.status(status).json({ message });
+  res.set('X-Operation-Status', 'error');
+  res.set('X-Response-Message', message);
+  res.status(status).json({ success: false, message });
 };

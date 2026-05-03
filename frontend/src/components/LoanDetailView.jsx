@@ -44,7 +44,7 @@ export function LoanDetailView({ selectedLoan, emis, formatCurrency, formatDate,
         </div>
       </header>
 
-      <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard label="Principal" value={formatCurrency(selectedLoan.principal)} icon={<CreditCard size={14}/>} />
         <SummaryCard label="Monthly EMI" value={formatCurrency(selectedLoan.monthlyEmi)} highlight />
         <SummaryCard label="Remaining" value={formatCurrency(selectedLoan.remainingBalance)} />
@@ -69,8 +69,11 @@ export function LoanDetailView({ selectedLoan, emis, formatCurrency, formatDate,
       </Card>
 
       <section className="space-y-4">
-        <div className="flex items-center gap-3 px-2">
-          <Calendar size={18} className="text-blue-500" /><h3 className="font-black text-lg tracking-tight uppercase opacity-50">Schedule Details</h3>
+        <div className="flex flex-col gap-3 px-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <Calendar size={18} className="text-blue-500" />
+            <h3 className="font-black text-lg tracking-tight uppercase opacity-50">Schedule Details</h3>
+          </div>
         </div>
         <Card className="p-0 overflow-hidden border-[var(--border)]">
           <div className="divide-y divide-[var(--border)]">

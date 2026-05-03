@@ -56,7 +56,7 @@ export function AnalyticsView({ analytics, loanStats, formatCurrency }) {
       </section>
 
       {/* Bottom Panel: Stat Grid */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Paid" value={formatCurrency(totalPaid)} />
         <StatCard label="Total Remaining" value={formatCurrency(totalRemaining)} />
         <StatCard label="Active Loans" value={loanStats.activeLoans} />

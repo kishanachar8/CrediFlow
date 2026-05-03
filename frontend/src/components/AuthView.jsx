@@ -8,8 +8,8 @@ export function AuthView({ mode, setMode, form, handleInput, submitAuth, onGoogl
   const isLogin = mode === 'login';
 
   return (
-    <div className="mx-auto w-full max-w-md animate-in fade-in zoom-in-95 duration-500">
-      <Card className="p-8 shadow-2xl shadow-blue-500/5 border-blue-500/10">
+    <div className="mx-auto w-full max-w-md px-4 py-10 sm:px-6 sm:py-12 animate-in fade-in zoom-in-95 duration-500">
+      <Card className="w-full p-8 shadow-2xl shadow-blue-500/5 border-blue-500/10">
         
         {/* Header Section */}
         <div className="mb-8 space-y-2 text-center">

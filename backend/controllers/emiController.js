@@ -1,5 +1,6 @@
 const emiRepository = require('../repositories/emiRepository');
 const loanRepository = require('../repositories/loanRepository');
+const { sendSuccess } = require('../utils/responseHelper');
 
 exports.getEmisByLoan = async (req, res, next) => {
   try {
@@ -14,7 +15,7 @@ exports.getEmisByLoan = async (req, res, next) => {
     const totalPaid = emis.filter((emi) => emi.paid).reduce((sum, emi) => sum + emi.amount, 0);
     const remainingBalance = emis.filter((emi) => !emi.paid).reduce((sum, emi) => sum + emi.amount, 0);
 
-    res.json({
+    sendSuccess(res, 'Loan EMI schedule retrieved successfully', {
       loan: {
         ...loan.toObject(),
         totalPaid,
@@ -54,7 +55,7 @@ exports.payEmi = async (req, res, next) => {
     }
 
     const remainingBalance = remainingEmis.reduce((sum, item) => sum + item.amount, 0);
-    res.json({ emi, loanStatus: emi.loan.status, remainingBalance });
+    sendSuccess(res, 'EMI payment recorded successfully', { emi, loanStatus: emi.loan.status, remainingBalance });
   } catch (error) {
     next(error);
   }

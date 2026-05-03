@@ -48,9 +48,9 @@ export function ProfileView({ user, loanStats, logout }) {
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
       </section>
 
-      <div className="grid gap-8 md:grid-cols-5">
+      <div className="grid gap-8 grid-cols-1 xl:grid-cols-5">
         {/* Identity Details - Spans 2 cols */}
-        <Card className="md:col-span-2 p-8 space-y-8">
+        <Card className="xl:col-span-2 p-8 space-y-8">
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-5">
             <div className="flex items-center gap-3">
                <User size={20} className="text-blue-500" />

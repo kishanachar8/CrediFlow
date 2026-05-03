@@ -23,7 +23,7 @@ module.exports = {
   env: process.env.NODE_ENV || 'development',
   port: process.env.PORT || 5000,
   mongoUri: process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/crediflow',
-  clientOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+  clientOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' || 'https://blptr6v0-5173.inc1.devtunnels.ms',
   serverUrl: process.env.SERVER_URL || 'http://localhost:5000',
   accessTokenSecret: process.env.ACCESS_TOKEN_SECRET || 'crediflow-access-secret',
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || 'crediflow-refresh-secret',
