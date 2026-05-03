@@ -7,9 +7,14 @@ const config = require('./env');
 passport.use(
   new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
     try {
-      const user = await User.findOne({ email });
+      const normalizedEmail = String(email || '').trim().toLowerCase();
+      const user = await User.findOne({ email: normalizedEmail });
       if (!user) {
         return done(null, false, { message: 'Incorrect email or password' });
+      }
+
+      if (user.provider === 'google') {
+        return done(null, false, { message: 'This email is registered with Google. Please sign in with Google.' });
       }
 
       const isMatch = await user.comparePassword(password);
@@ -34,17 +39,22 @@ if (config.googleClientId && config.googleClientSecret) {
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
+          const email = profile.emails?.[0]?.value?.trim().toLowerCase();
           let user = await User.findOne({ googleId: profile.id });
           
           if (!user) {
+            if (!email) {
+              return done(new Error('Google profile does not contain an email'));
+            }
+
             // Check if user already exists with this email
-            user = await User.findOne({ email: profile.emails[0].value });
+            user = await User.findOne({ email });
             
             if (user) {
               // Link Google account to existing user
               user.googleId = profile.id;
               user.provider = 'google';
-              if (!user.profilePicture && profile.photos[0]) {
+              if (!user.profilePicture && profile.photos?.[0]) {
                 user.profilePicture = profile.photos[0].value;
               }
             } else {
@@ -52,9 +62,9 @@ if (config.googleClientId && config.googleClientSecret) {
               user = new User({
                 googleId: profile.id,
                 name: profile.displayName,
-                email: profile.emails[0].value,
+                email,
                 provider: 'google',
-                profilePicture: profile.photos[0]?.value,
+                profilePicture: profile.photos?.[0]?.value,
               });
             }
             await user.save();

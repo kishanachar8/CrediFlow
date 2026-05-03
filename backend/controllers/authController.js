@@ -173,13 +173,20 @@ exports.verifyGoogleToken = async (req, res, next) => {
     });
 
     const payload = ticket.getPayload();
+    const email = payload.email?.trim().toLowerCase();
+
+    if (!email) {
+      const error = new Error('Google credential payload does not contain an email.');
+      error.status = 400;
+      throw error;
+    }
 
     // Find or create user
     let user = await User.findOne({ googleId: payload.sub });
 
     if (!user) {
       // Check if user exists by email
-      user = await User.findOne({ email: payload.email });
+      user = await User.findOne({ email });
 
       if (user) {
         // Link Google account to existing user
@@ -193,7 +200,7 @@ exports.verifyGoogleToken = async (req, res, next) => {
         user = new User({
           googleId: payload.sub,
           name: payload.name,
-          email: payload.email,
+          email,
           provider: 'google',
           profilePicture: payload.picture,
         });

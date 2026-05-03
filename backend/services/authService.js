@@ -6,7 +6,11 @@ const tokenService = require('./tokenService');
 exports.register = async ({ name, email, password }) => {
   const existingUser = await userRepository.findByEmail(email);
   if (existingUser) {
-    const error = new Error('Email already in use');
+    const error = new Error(
+      existingUser.provider === 'google'
+        ? 'Email already registered with Google. Please log in using Google.'
+        : 'Email already in use'
+    );
     error.status = 409;
     throw error;
   }
@@ -19,6 +23,12 @@ exports.authenticate = async ({ email, password }) => {
   const user = await userRepository.findByEmail(email);
   if (!user) {
     const error = new Error('Invalid email or password');
+    error.status = 401;
+    throw error;
+  }
+
+  if (user.provider === 'google') {
+    const error = new Error('This email is registered with Google. Please sign in with Google.');
     error.status = 401;
     throw error;
   }
