@@ -1,161 +1,233 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
-import { 
-  ArrowLeft, CheckCircle2, Clock, Calendar, 
-  ReceiptText, ShieldCheck, CreditCard, Lock 
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Calendar,
+  ReceiptText,
+  ShieldCheck,
+  CreditCard,
+  Lock,
+  AlertTriangle,
+  Clock,
+  Zap,
 } from 'lucide-react';
 
 export function LoanDetailView({ selectedLoan, emis, formatCurrency, formatDate, payEmi, setPage }) {
   if (!selectedLoan) {
     return (
-      <div className="flex flex-col items-center justify-center p-20 text-center animate-in fade-in zoom-in-95 duration-500">
-        <div className="bg-[var(--surface-strong)] p-6 rounded-[2.5rem] border border-[var(--border)] shadow-inner mb-6">
-          <ReceiptText size={48} className="text-blue-500/20" />
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-[var(--surface-muted)] flex items-center justify-center mb-5">
+          <ReceiptText size={28} className="text-[var(--text-muted)]" />
         </div>
-        <h3 className="text-xl font-bold tracking-tight">No Loan Selected</h3>
-        <Button variant="outline" className="mt-8" onClick={() => setPage('dashboard')}>
-          <ArrowLeft size={16} className="mr-2" /> Return to Dashboard
+        <h3 className="text-lg font-bold text-[var(--text-primary)]">No loan selected</h3>
+        <Button variant="secondary" className="mt-6" onClick={() => setPage('dashboard')}>
+          <ArrowLeft size={14} className="mr-2" /> Back to Dashboard
         </Button>
       </div>
     );
   }
 
-  const paidCount = emis.filter(e => e.paid).length;
+  const paidCount = emis.filter((e) => e.paid).length;
   const progressPercent = emis.length > 0 ? (paidCount / emis.length) * 100 : 0;
+  const nextDue = emis.find((e) => !e.paid);
+  const overdueCount = emis.filter((e) => !e.paid && new Date(e.dueDate) < new Date()).length;
 
   return (
-    <main className="max-w-full mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
-        <div className="space-y-3">
-          <button onClick={() => setPage('dashboard')} className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-blue-500">
-            <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-1" /> Back to Overview
+    <div className="max-w-5xl mx-auto space-y-8 pb-16">
+
+      {/* ── Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-2">
+        <div className="space-y-2">
+          <button
+            onClick={() => setPage('dashboard')}
+            className="group flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-indigo-400 hover:text-indigo-300 transition-colors"
+          >
+            <ArrowLeft size={12} className="transition-transform group-hover:-translate-x-0.5" />
+            Back
           </button>
-          <div className="flex items-center gap-4">
-             <div className="h-12 w-1.5 bg-blue-500 rounded-full" />
-             <h2 className="text-4xl font-black tracking-tighter text-[var(--text)]">Repayment Timeline</h2>
-          </div>
+          <h2 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">
+            Repayment Schedule
+          </h2>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-[var(--surface-strong)]/50 rounded-2xl border border-[var(--border)] backdrop-blur-md">
-           <ShieldCheck size={14} className="text-emerald-500" />
-           <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
-             Verified Account: {selectedLoan._id.slice(-6).toUpperCase()}
-           </span>
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] glass text-xs font-semibold text-[var(--text-muted)]">
+          <ShieldCheck size={13} className="text-emerald-400" />
+          Loan #{selectedLoan._id.slice(-6).toUpperCase()}
         </div>
-      </header>
+      </div>
 
-      <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard label="Principal" value={formatCurrency(selectedLoan.principal)} icon={<CreditCard size={14}/>} />
-        <SummaryCard label="Monthly EMI" value={formatCurrency(selectedLoan.monthlyEmi)} highlight />
-        <SummaryCard label="Remaining" value={formatCurrency(selectedLoan.remainingBalance)} />
-        <SummaryCard label="Next Due" value={selectedLoan.nextDueDate ? formatDate(selectedLoan.nextDueDate) : 'N/A'} />
-      </section>
+      {/* ── Summary Cards ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <MiniCard label="Principal" value={formatCurrency(selectedLoan.principal)} icon={<CreditCard size={13} />} />
+        <MiniCard label="Monthly EMI" value={formatCurrency(selectedLoan.monthlyEmi)} accent />
+        <MiniCard label="Remaining" value={formatCurrency(selectedLoan.remainingBalance)} />
+        <MiniCard
+          label="Next Due"
+          value={nextDue ? formatDate(nextDue.dueDate) : 'Cleared'}
+          icon={<Calendar size={13} />}
+          danger={overdueCount > 0}
+        />
+      </div>
 
-      <Card className="p-8 border-none bg-gradient-to-br from-blue-600 to-indigo-700 text-white overflow-hidden relative shadow-blue-500/20">
-        <div className="relative z-10 space-y-4">
-          <div className="flex justify-between items-end">
+      {/* ── Progress Banner ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 p-6 shadow-[0_12px_40px_rgba(99,102,241,0.4)]">
+        {/* Noise pattern overlay */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")' }}
+        />
+        <div className="relative z-10">
+          <div className="flex items-end justify-between mb-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] opacity-80">Collection Progress</p>
-              <h4 className="text-3xl font-black mt-1">{Math.round(progressPercent)}%</h4>
+              <p className="text-xs font-bold uppercase tracking-widest text-blue-200/70 mb-2">Repayment Progress</p>
+              <div className="flex items-end gap-3">
+                <span className="text-5xl font-black tracking-tight text-white leading-none">
+                  {Math.round(progressPercent)}%
+                </span>
+                <span className="text-sm text-blue-200/70 mb-1 font-medium">
+                  {paidCount} / {emis.length} cleared
+                </span>
+              </div>
             </div>
-            <p className="text-sm font-medium opacity-80 italic">{paidCount} of {emis.length} installments cleared</p>
+            {overdueCount > 0 && (
+              <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/20 border border-rose-400/30 text-xs font-bold text-rose-200">
+                <AlertTriangle size={12} /> {overdueCount} overdue
+              </div>
+            )}
           </div>
-          <div className="h-3 w-full bg-white/20 rounded-full overflow-hidden backdrop-blur-md">
-            <div className="h-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all duration-1000 ease-out rounded-full" 
-                 style={{ width: `${progressPercent}%` }} />
-          </div>
-        </div>
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-      </Card>
 
-      <section className="space-y-4">
-        <div className="flex flex-col gap-3 px-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <Calendar size={18} className="text-blue-500" />
-            <h3 className="font-black text-lg tracking-tight uppercase opacity-50">Schedule Details</h3>
+          {/* Progress bar */}
+          <div className="h-2.5 w-full bg-white/15 rounded-full overflow-hidden">
+            <div
+              className="progress-shimmer h-full bg-white rounded-full transition-all duration-700 ease-out"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <div className="flex justify-between mt-2 text-[11px] text-blue-200/50 font-medium">
+            <span>Started</span>
+            <span>Debt-free: {selectedLoan.debtFreeDate ? formatDate(selectedLoan.debtFreeDate) : '—'}</span>
           </div>
         </div>
-        <Card className="p-0 overflow-hidden border-[var(--border)]">
-          <div className="divide-y divide-[var(--border)]">
+
+        {/* Decorative blobs */}
+        <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white/5 blur-3xl pointer-events-none" />
+        <div className="absolute -left-6 -bottom-10 w-36 h-36 rounded-full bg-violet-900/30 blur-2xl pointer-events-none" />
+      </div>
+
+      {/* ── Schedule Table ── */}
+      <div>
+        <div className="flex items-center gap-2 mb-4 px-1">
+          <Zap size={15} className="text-indigo-400" />
+          <h3 className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            Payment Schedule
+          </h3>
+        </div>
+
+        <div className="rounded-2xl border border-[var(--border)] overflow-hidden shadow-[var(--shadow)]">
+          {/* Table header */}
+          <div className="grid grid-cols-[2.5rem_1fr_1fr_auto] gap-3 px-5 py-3.5 bg-[var(--surface-strong)] border-b border-[var(--border)]">
+            {['', 'Installment', 'Amount', 'Action'].map((h) => (
+              <span key={h} className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">{h}</span>
+            ))}
+          </div>
+
+          <div className="divide-y divide-[var(--border)] bg-[var(--surface)]">
             {emis.map((emi, index) => (
-              <InstallmentRow 
-                key={emi._id} 
-                emi={emi} 
-                // CRITICAL: We pass the status of the previous EMI to determine if this one is locked
+              <InstallmentRow
+                key={emi._id}
+                emi={emi}
+                index={index}
                 isLocked={index > 0 && !emis[index - 1].paid}
-                formatCurrency={formatCurrency} 
-                formatDate={formatDate} 
-                payEmi={payEmi} 
+                formatCurrency={formatCurrency}
+                formatDate={formatDate}
+                payEmi={payEmi}
               />
             ))}
           </div>
-        </Card>
-      </section>
-    </main>
+        </div>
+      </div>
+    </div>
   );
 }
 
-function SummaryCard({ label, value, highlight, icon }) {
-  return (
-    <Card className={`p-5 transition-all duration-500 ${highlight ? 'bg-blue-600 border-none text-white shadow-lg' : ''}`}>
-      <div className="flex items-center gap-2 mb-2">
-        {icon && <span className="opacity-50">{icon}</span>}
-        <span className={`text-[10px] font-black uppercase tracking-widest ${highlight ? 'text-blue-100' : 'text-[var(--text-muted)]'}`}>{label}</span>
+/* ─── Sub-components ─────────────────────────────────────────────────── */
+
+function MiniCard({ label, value, icon, accent, danger }) {
+  if (accent) {
+    return (
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-5 shadow-[0_8px_24px_rgba(99,102,241,0.35)]">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-blue-100/70 mb-1">{label}</p>
+        <p className="text-lg font-black text-white">{value}</p>
       </div>
-      <p className="text-xl font-black tracking-tight">{value}</p>
+    );
+  }
+  return (
+    <Card className={`p-5 ${danger ? 'border-rose-500/30 bg-rose-500/5' : ''}`}>
+      <div className="flex items-center gap-1.5 mb-2">
+        {icon && <span className="text-[var(--text-muted)]">{icon}</span>}
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">{label}</p>
+      </div>
+      <p className={`text-lg font-black ${danger ? 'text-rose-500' : 'text-[var(--text-primary)]'}`}>{value}</p>
     </Card>
   );
 }
 
-function InstallmentRow({ emi, isLocked, formatCurrency, formatDate, payEmi }) {
-  const isPaid = emi.paid;
+function InstallmentRow({ emi, index, isLocked, formatCurrency, formatDate, payEmi }) {
+  const isPaid    = emi.paid;
+  const isOverdue = !isPaid && new Date(emi.dueDate) < new Date();
+  const num       = emi.paymentNumber ?? index + 1;
 
   return (
-    <div className={`group flex flex-col md:flex-row md:items-center justify-between p-6 transition-all 
-      ${isPaid ? 'bg-[var(--surface-strong)]/10' : ''} 
-      ${isLocked ? 'opacity-40 select-none' : 'hover:bg-[var(--surface-strong)]/30'}`}
-    >
-      <div className="flex items-center gap-6">
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 transition-all 
-          ${isPaid 
-            ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500 rotate-12' 
-            : isLocked
-              ? 'border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-muted)]'
-              : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] group-hover:text-blue-500'
-          }`}
-        >
-          {isLocked ? <Lock size={16} /> : <span className="text-sm font-black">#{emi.paymentNumber}</span>}
-        </div>
-        
-        <div className="space-y-1">
-          <p className={`font-black text-xl tracking-tight ${isPaid ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text)]'}`}>
-            {formatCurrency(emi.amount)}
-          </p>
-          <div className="flex items-center gap-3">
-             <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
-               <Calendar size={12} /> {formatDate(emi.dueDate)}
-             </div>
-             {isPaid && <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Processed</span>}
-             {!isPaid && isLocked && <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest italic">Awaiting Previous Payment</span>}
-          </div>
-        </div>
+    <div className={`grid grid-cols-[2.5rem_1fr_1fr_auto] gap-3 items-center px-5 py-4 transition-colors ${
+      isPaid    ? 'bg-[var(--surface-strong)]/50'
+    : isOverdue ? 'bg-rose-500/3'
+    : isLocked  ? 'opacity-40'
+    : 'hover:bg-[var(--surface-muted)]/50'
+    }`}>
+
+      {/* Status icon */}
+      <div className={`flex items-center justify-center w-8 h-8 rounded-xl border ${
+        isPaid    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500'
+        : isOverdue ? 'border-rose-400/40 bg-rose-500/10 text-rose-500'
+        : isLocked  ? 'border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-muted)]'
+        : 'border-[var(--border)] text-[var(--text-muted)]'
+      }`}>
+        {isPaid ? <CheckCircle2 size={14} />
+        : isLocked ? <Lock size={12} />
+        : isOverdue ? <AlertTriangle size={12} />
+        : <Clock size={12} />}
       </div>
 
-      <div className="mt-6 md:mt-0 flex items-center justify-end gap-6">
+      {/* Number + date */}
+      <div>
+        <p className="text-xs font-bold text-[var(--text-primary)]">#{num}</p>
+        <p className="text-[11px] text-[var(--text-muted)]">{formatDate(emi.dueDate)}</p>
+      </div>
+
+      {/* Amount */}
+      <p className={`text-sm font-bold ${
+        isPaid    ? 'text-[var(--text-muted)] line-through'
+        : isOverdue ? 'text-rose-500'
+        : 'text-[var(--text-primary)]'
+      }`}>
+        {formatCurrency(emi.amount)}
+      </p>
+
+      {/* Action */}
+      <div className="flex justify-end">
         {isPaid ? (
-          <div className="flex items-center gap-2 text-emerald-500">
-            <CheckCircle2 size={20} />
-            <span className="text-xs font-black uppercase tracking-widest">Cleared</span>
-          </div>
+          <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-500">
+            <CheckCircle2 size={12} /> Paid
+          </span>
+        ) : isLocked ? (
+          <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Locked</span>
         ) : (
-          <Button 
-            variant={isLocked ? "ghost" : "primary"} 
-            size="sm" 
-            onClick={() => !isLocked && payEmi(emi._id)} 
-            disabled={isLocked} // Disable the button so it cannot be clicked
-            className={`px-6 py-2 h-auto text-xs ${isLocked ? 'cursor-not-allowed border-dashed opacity-50' : ''}`}
+          <Button
+            size="sm"
+            onClick={() => payEmi(emi._id)}
+            className={`h-8 px-4 text-xs font-bold ${isOverdue ? 'from-rose-500 to-rose-600 shadow-[0_4px_15px_rgba(244,63,94,0.4)]' : ''}`}
           >
-            {isLocked ? 'Locked' : 'Mark as Paid'}
+            Pay
           </Button>
         )}
       </div>

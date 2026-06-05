@@ -45,9 +45,15 @@ exports.authenticate = async ({ email, password }) => {
 
 exports.issueTokens = async (user) => {
   const tokenId = tokenService.createTokenId();
-  const payload = { userId: user.id, name: user.name, email: user.email, tokenId };
+  const payload = {
+    userId: user.id,
+    name: user.name,
+    email: user.email,
+    provider: user.provider || 'local',
+    tokenId,
+  };
   const refreshToken = tokenService.createRefreshToken(payload);
-  const accessToken = tokenService.createAccessToken({ userId: user.id, name: user.name, email: user.email });
+  const accessToken = tokenService.createAccessToken(payload);
   await refreshTokenRepository.create({
     tokenId,
     user: user.id,
@@ -58,7 +64,13 @@ exports.issueTokens = async (user) => {
 
 exports.rotateRefreshToken = async (oldTokenId, user) => {
   const replacedByToken = tokenService.createTokenId();
-  const payload = { userId: user.id, name: user.name, email: user.email, tokenId: replacedByToken };
+  const payload = {
+    userId: user.id,
+    name: user.name,
+    email: user.email,
+    provider: user.provider || 'local',
+    tokenId: replacedByToken,
+  };
   const refreshToken = tokenService.createRefreshToken(payload);
   await refreshTokenRepository.revokeByTokenId(oldTokenId, replacedByToken);
   await refreshTokenRepository.create({

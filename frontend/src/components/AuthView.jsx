@@ -1,167 +1,133 @@
 import React from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { Button } from './ui/button.jsx';
-import { Card } from './ui/card'; // Using the Card we refactored earlier
-import { Mail, Lock, User, ArrowRight, Globe } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight } from 'lucide-react';
 
 export function AuthView({ mode, setMode, form, handleInput, submitAuth, onGoogleSuccess, onGoogleError, googleEnabled }) {
   const isLogin = mode === 'login';
 
   return (
-    <div className="mx-auto w-full max-w-md px-4 py-10 sm:px-6 sm:py-12 animate-in fade-in zoom-in-95 duration-500">
-      <Card className="w-full p-8 shadow-2xl shadow-blue-500/5 border-blue-500/10">
-        
-        {/* Header Section */}
-        <div className="mb-8 space-y-2 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/20 ring-4 ring-blue-500/5">
-            <Lock size={28} />
+    <div className="relative min-h-[calc(100vh-120px)] flex items-center justify-center px-4 py-12 overflow-hidden">
+
+      {/* Background blobs */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-indigo-500/10 blur-3xl" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-violet-500/10 blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-blue-500/5 blur-3xl" />
+      </div>
+
+      <div className="relative w-full max-w-[420px]">
+
+        {/* Brand */}
+        <div className="flex flex-col items-center mb-8 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-[0_8px_30px_rgba(99,102,241,0.45)] mb-4">
+            C
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-500">
-            Secure Gateway
-          </p>
-          <h2 className="text-3xl font-bold tracking-tight text-[var(--text)]">
+          <h1 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">
             {isLogin ? 'Welcome back' : 'Get started'}
-          </h2>
-          <p className="text-sm text-[var(--text-muted)] px-4">
-            {isLogin 
-              ? 'Enter your credentials to manage your loan portfolio.' 
-              : 'Join CrediFlow to track and optimize your repayments.'}
+          </h1>
+          <p className="text-sm text-[var(--text-muted)] mt-2">
+            {isLogin ? 'Sign in to your CrediFlow account' : 'Create your account — it\'s free'}
           </p>
         </div>
 
-        {/* Auth Form */}
-        <form onSubmit={submitAuth} className="space-y-5">
-          {!isLogin && (
-            <InputField
-              label="Full Name"
-              id="name"
-              icon={<User size={18} />}
-              placeholder="Jane Doe"
-              value={form.name}
-              onChange={handleInput}
-            />
-          )}
+        {/* Glass card */}
+        <div className="glass rounded-2xl border border-[var(--border)] shadow-[var(--shadow-xl)] p-8">
 
-          <InputField
-            label="Email Address"
-            id="email"
-            type="email"
-            icon={<Mail size={18} />}
-            placeholder="name@company.com"
-            value={form.email}
-            onChange={handleInput}
-          />
-
-          <InputField
-            label="Password"
-            id="password"
-            type="password"
-            icon={<Lock size={18} />}
-            placeholder="••••••••"
-            value={form.password}
-            onChange={handleInput}
-            rightElement={isLogin && (
-              <button type="button" className="text-[10px] font-bold text-blue-500 hover:underline">
-                Forgot?
-              </button>
+          {/* Email/password form */}
+          <form onSubmit={submitAuth} className="space-y-4">
+            {!isLogin && (
+              <AuthInput label="Full Name" id="name" icon={<User size={15} />} placeholder="Jane Doe" value={form.name} onChange={handleInput} />
             )}
-          />
+            <AuthInput label="Email" id="email" type="email" icon={<Mail size={15} />} placeholder="you@example.com" value={form.email} onChange={handleInput} />
+            <AuthInput label="Password" id="password" type="password" icon={<Lock size={15} />} placeholder="••••••••" value={form.password} onChange={handleInput} />
 
-          <Button 
-            type="submit" 
-            className="group w-full py-6 text-lg"
-          >
-            {isLogin ? 'Sign In' : 'Create Account'}
-            <ArrowRight className="ml-2 transition-transform group-hover:translate-x-1" size={18} />
-          </Button>
-        </form>
+            <Button type="submit" className="w-full py-3 font-bold text-sm mt-2">
+              {isLogin ? 'Sign In' : 'Create Account'}
+              <ArrowRight size={15} className="ml-2" />
+            </Button>
+          </form>
 
-        {/* Divider */}
-        <div className="my-8 flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
-          <div className="h-px flex-1 bg-[var(--border)] opacity-50" />
-          <span className="shrink-0">Or continue with</span>
-          <div className="h-px flex-1 bg-[var(--border)] opacity-50" />
-        </div>
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-6">
+            <div className="flex-1 h-px bg-[var(--border)]" />
+            <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">or</span>
+            <div className="flex-1 h-px bg-[var(--border)]" />
+          </div>
 
-        {/* Social Auth */}
-        <div className="w-full">
+          {/* Google */}
           {googleEnabled ? (
             <GoogleLogin
               onSuccess={onGoogleSuccess}
               onError={onGoogleError}
-              render={(renderProps) => (
-                <Button 
-                  type="button"
-                  variant="secondary" 
-                  className="w-full gap-3 py-4 font-medium"
-                  onClick={renderProps.onClick}
-                  disabled={renderProps.disabled}
-                >
-                  <Globe size={18} className="text-blue-500" />
-                  Google Account
-                </Button>
+              render={(rp) => (
+                <GoogleButton onClick={rp.onClick} disabled={rp.disabled} />
               )}
             />
           ) : (
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full gap-3 py-4 font-medium"
-              disabled
-            >
-              <Globe size={18} className="text-blue-500" />
-              Google login unavailable
-            </Button>
+            <GoogleButton disabled />
           )}
+
+          {/* Toggle mode */}
+          <p className="mt-6 text-center text-sm text-[var(--text-muted)]">
+            {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
+            <button
+              type="button"
+              onClick={() => setMode(isLogin ? 'register' : 'login')}
+              className="font-bold text-indigo-500 hover:text-indigo-400 transition-colors"
+            >
+              {isLogin ? 'Sign up' : 'Sign in'}
+            </button>
+          </p>
         </div>
 
-        {/* Toggle link */}
-        <p className="mt-8 text-center text-sm text-[var(--text-muted)]">
-          {isLogin ? "Don't have an account?" : "Already a member?"}{' '}
-          <button
-            type="button"
-            className="font-bold text-blue-500 hover:text-blue-600 transition-colors"
-            onClick={() => setMode(isLogin ? 'register' : 'login')}
-          >
-            {isLogin ? 'Sign up for free' : 'Log in here'}
-          </button>
+        {/* Trust badge */}
+        <p className="text-center text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)] opacity-40 mt-6">
+          256-bit encrypted · Private by default
         </p>
-      </Card>
-
-      {/* Trust Badges */}
-      <div className="mt-8 flex items-center justify-center gap-8 opacity-30 grayscale contrast-125">
-        <span className="text-[9px] font-black tracking-tighter">256-BIT ENCRYPTION</span>
-        <div className="h-1 w-1 rounded-full bg-[var(--text-muted)]" />
-        <span className="text-[9px] font-black tracking-tighter">PCI-DSS COMPLIANT</span>
       </div>
     </div>
   );
 }
 
-/**
- * Internal Input Component to keep things DRY
- */
-function InputField({ label, id, icon, rightElement, ...props }) {
+function AuthInput({ label, id, icon, ...props }) {
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between px-1">
-        <label htmlFor={id} className="text-xs font-semibold text-[var(--text)]">
-          {label}
-        </label>
-        {rightElement}
-      </div>
+      <label htmlFor={id} className="block text-xs font-semibold text-[var(--text-secondary)] pl-1">
+        {label}
+      </label>
       <div className="relative group">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] transition-colors group-focus-within:text-blue-500">
+        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] transition-colors group-focus-within:text-indigo-500">
           {icon}
         </div>
         <input
           id={id}
           name={id}
-          className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] py-3.5 pl-11 pr-4 text-sm outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder:text-[var(--text-muted)]/50"
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-strong)] py-3 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/40 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15 transition-all"
           required
           {...props}
         />
       </div>
     </div>
+  );
+}
+
+function GoogleButton({ onClick, disabled }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface-strong)] text-sm font-semibold text-[var(--text-primary)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-muted)] hover:shadow-[var(--shadow)] transition-all disabled:opacity-40 disabled:pointer-events-none"
+    >
+      {/* Google "G" SVG icon */}
+      <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
+        <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/>
+        <path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332Z" fill="#FBBC05"/>
+        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/>
+      </svg>
+      Continue with Google
+    </button>
   );
 }

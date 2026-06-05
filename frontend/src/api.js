@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const BASE_URL = import.meta.env.VITE_API_URL?.trim() || '';
 
 let accessToken = null;
 let csrfToken = null;
@@ -82,6 +82,8 @@ export const api = {
   }),
   logout: () => fetchJson('/api/auth/logout', { method: 'POST', headers: { 'X-CSRF-Token': csrfToken } }),
   profile: () => fetchJson('/api/auth/profile', { method: 'GET' }),
+  updateProfile: (body) => fetchJson('/api/auth/profile', { method: 'PATCH', body }),
+  changePassword: (body) => fetchJson('/api/auth/change-password', { method: 'PATCH', body, headers: { 'X-CSRF-Token': csrfToken } }),
   createLoan: (body) => fetchJson('/api/loans', { method: 'POST', body }),
   getLoans: () => fetchJson('/api/loans', { method: 'GET' }),
   deleteLoan: (loanId) => fetchJson(`/api/loans/${loanId}`, { method: 'DELETE' }),

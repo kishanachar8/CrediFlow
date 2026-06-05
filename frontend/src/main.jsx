@@ -7,10 +7,13 @@ import { store } from './app/store.js';
 import App from './App.jsx';
 
 // Styling
-/** * Ensure your loanmate-theme.css contains the variable definitions
+import './styles.css';
+
+/**
+ * Ensure your loanmate-theme.css contains the variable definitions
  * we used in the view refactors (e.g., --surface, --border, --text).
  */
-import './loanmate-theme.css'; 
+import './loanmate-theme.css';
 
 /**
  * Root initialization

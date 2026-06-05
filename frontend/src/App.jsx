@@ -112,6 +112,31 @@ export default function App() {
     }
   }, [dispatch, showMessage]);
 
+  const handleLogout = useCallback(async () => {
+    try {
+      await api.logout();
+    } catch (err) {
+      console.error('Logout failed:', err);
+    } finally {
+      dispatch(clearUser());
+      dispatch(clearLoans());
+    }
+  }, [dispatch]);
+
+  const handleProfileUpdate = useCallback(async (profileData) => {
+    const data = await api.updateProfile(profileData);
+    dispatch(setUser(data.user));
+    showMessage('Profile updated successfully', 'success');
+    return data.user;
+  }, [dispatch, showMessage]);
+
+  const handlePasswordChange = useCallback(async (passwordData) => {
+    const data = await api.changePassword(passwordData);
+    dispatch(setUser(data.user));
+    showMessage('Password updated successfully', 'success');
+    return data.user;
+  }, [dispatch, showMessage]);
+
   const payEmiHandler = useCallback(async (emiId) => {
     const targetEmi = emis.find(e => e._id === emiId);
     if (!targetEmi) return;
@@ -213,7 +238,7 @@ export default function App() {
 
   // --- UI ---
   const appMarkup = (
-    <div className="min-h-screen w-full bg-[var(--surface-strong)]">
+    <div className="min-h-screen w-full theme-transition">
       <div className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-12">
 
         <Header
@@ -224,11 +249,7 @@ export default function App() {
           setPage={setPage}
           navOpen={navOpen}
           setNavOpen={setNavOpen}
-          logout={async () => {
-            await api.logout();
-            dispatch(clearUser());
-            dispatch(clearLoans());
-          }}
+          logout={handleLogout}
         />
 
         <MessageBanner message={message} onClose={() => setMessage({ text: '', type: 'info' })} />
@@ -271,7 +292,7 @@ export default function App() {
                 />
               )}
 
-              {page === 'profile' && <ProfileView user={user} loanStats={loanStats} />}
+              {page === 'profile' && <ProfileView user={user} loanStats={loanStats} logout={handleLogout} onProfileUpdate={handleProfileUpdate} onPasswordChange={handlePasswordChange} />}
 
               {page === 'analytics' && (
                 <AnalyticsView analytics={analytics} loanStats={loanStats} formatCurrency={formatCurrency} />

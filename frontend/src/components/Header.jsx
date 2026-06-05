@@ -1,125 +1,122 @@
 import React from 'react';
-import { Sun, Moon, LogOut, LayoutDashboard, BarChart3, UserCircle, ChevronRight } from 'lucide-react';
+import { Sun, Moon, LogOut, LayoutDashboard, BarChart3, UserCircle, Menu, X } from 'lucide-react';
 
 export function Header({ user, page, setPage, theme, toggleTheme, navOpen, setNavOpen, logout }) {
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
-    { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={18} /> },
-    { id: 'profile', label: 'Profile', icon: <UserCircle size={18} /> },
+    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={15} /> },
+    { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={15} /> },
+    { id: 'profile',   label: 'Profile',   icon: <UserCircle size={15} /> },
   ];
 
-  const handleNavClick = (pageId) => {
-    setPage(pageId);
-    setNavOpen(false);
-  };
+  const handleNavClick = (id) => { setPage(id); setNavOpen(false); };
 
   return (
-    <header className="relative z-50 w-full rounded-[2.5rem] border border-[var(--border)] bg-[var(--surface)]/70 p-3 shadow-2xl backdrop-blur-2xl md:p-4 transition-all duration-300">
-      <div className="flex items-center justify-between gap-4">
+    <header className="relative z-50">
+      {/* ── Main Bar (glassmorphism) ── */}
+      <div className="glass flex items-center justify-between gap-4 px-4 py-3 rounded-2xl border border-[var(--border)] shadow-[var(--shadow-lg)]">
 
-        {/* Brand Section */}
-        <div className="flex items-center gap-4 pl-2">
-          <div onClick={() => {
-            setPage('dashboard');
-            setNavOpen(false);
-          }} className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20">
-            <span className="text-xl font-black">C</span>
+        {/* Brand */}
+        <button onClick={() => handleNavClick('dashboard')} className="flex items-center gap-3 shrink-0 group">
+          <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-[0_4px_16px_rgba(99,102,241,0.5)] group-hover:shadow-[0_6px_22px_rgba(99,102,241,0.65)] transition-shadow duration-300">
+            <span className="text-base font-black">C</span>
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-xl font-black tracking-tighter text-[var(--text)] leading-none">
-              CrediFlow
-            </h1>
-            <span className="text-[9px] font-bold uppercase tracking-[0.25em] text-blue-500 mt-1">
-              Portfolio
-            </span>
+          <div className="hidden sm:block leading-none">
+            <span className="block text-[15px] font-black tracking-tight text-[var(--text-primary)]">CrediFlow</span>
+            <span className="block text-[9px] font-bold uppercase tracking-[0.22em] text-indigo-400 mt-0.5">Portfolio</span>
           </div>
-        </div>
+        </button>
 
-        {/* Desktop Navigation & Actions */}
-        <div className="flex items-center gap-2">
+        {/* Right side */}
+        <div className="flex items-center gap-1.5">
+
+          {/* Desktop nav pill */}
           {user && (
-            <nav className="hidden items-center gap-1 rounded-[1.5rem] bg-[var(--surface-strong)]/50 p-1.5 border border-[var(--border)] md:flex">
+            <nav className="hidden md:flex items-center gap-0.5 p-1 rounded-xl bg-[var(--surface-muted)] border border-[var(--border)]">
               {navItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
-                  className={`relative flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-all duration-300 ${page === item.id
-                      ? 'bg-[var(--surface)] text-blue-500 shadow-md ring-1 ring-black/5'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-                    }`}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wide transition-all duration-200 ${
+                    page === item.id
+                      ? 'bg-[var(--surface)] text-indigo-500 shadow-[var(--shadow)]'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  }`}
                 >
+                  {item.icon}
                   {item.label}
                 </button>
               ))}
-              <div className="mx-2 h-4 w-px bg-[var(--border)]" />
-              <button
-                onClick={logout}
-                className="group flex h-9 w-9 items-center justify-center rounded-xl text-rose-400 hover:bg-rose-500/10 hover:text-rose-500 transition-colors"
-                title="Logout"
-              >
-                <LogOut size={18} className="transition-transform group-hover:scale-110" />
-              </button>
             </nav>
           )}
 
-          {/* Theme Toggle */}
+          {/* Theme toggle */}
           <button
             onClick={toggleTheme}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)]/50 text-[var(--text)] shadow-inner transition-all hover:bg-[var(--surface-strong)] active:scale-90"
+            className="flex items-center justify-center w-9 h-9 rounded-xl border border-[var(--border)] bg-[var(--surface-strong)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all duration-200"
+            title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
           >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
           </button>
 
-          {/* User Profile / Mobile Toggle */}
+          {/* Logout (desktop) */}
           {user && (
             <button
-              className="group flex h-11 items-center gap-2 rounded-2xl bg-blue-600 pl-1.5 pr-3 text-white transition-all hover:bg-blue-700 md:hidden"
-              onClick={() => setNavOpen(!navOpen)}
+              onClick={logout}
+              className="hidden md:flex items-center justify-center w-9 h-9 rounded-xl border border-[var(--border)] bg-[var(--surface-strong)] text-[var(--text-muted)] hover:text-rose-500 hover:border-rose-400/30 hover:bg-rose-500/5 transition-all duration-200"
+              title="Logout"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20 font-bold uppercase">
-                {user.name?.[0]}
-              </div>
-              <ChevronRight size={16} className={`transition-transform duration-300 ${navOpen ? 'rotate-90' : ''}`} />
+              <LogOut size={15} />
+            </button>
+          )}
+
+          {/* Mobile hamburger */}
+          {user && (
+            <button
+              onClick={() => setNavOpen(!navOpen)}
+              className="flex md:hidden items-center justify-center w-9 h-9 rounded-xl border border-[var(--border)] bg-[var(--surface-strong)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              {navOpen ? <X size={15} /> : <Menu size={15} />}
             </button>
           )}
         </div>
       </div>
 
-      {/* Mobile Drawer (Refined) */}
+      {/* ── Mobile Drawer ── */}
       {user && navOpen && (
-        <div className="absolute left-0 right-0 top-[calc(100%+16px)] overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)]/95 p-3 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-3xl animate-in zoom-in-95 slide-in-from-top-4 duration-300 md:hidden">
-          <div className="mb-2 flex items-center gap-4 rounded-2xl bg-[var(--surface-strong)] p-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500 text-white text-xl font-bold">
-              {user.name?.[0]}
+        <div className="absolute left-0 right-0 top-[calc(100%+10px)] glass rounded-2xl border border-[var(--border)] shadow-[var(--shadow-xl)] overflow-hidden md:hidden">
+          {/* User chip */}
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-[var(--border)]">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-sm shadow-[0_4px_12px_rgba(99,102,241,0.4)]">
+              {user.name?.[0]?.toUpperCase()}
             </div>
-            <div className="flex flex-col">
-              <span className="text-base font-bold text-[var(--text)] leading-tight">{user.name}</span>
-              <span className="text-xs text-[var(--text-muted)] font-medium">{user.email}</span>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-[var(--text-primary)] truncate">{user.name}</p>
+              <p className="text-xs text-[var(--text-muted)] truncate">{user.email}</p>
             </div>
           </div>
 
-          <nav className="space-y-1">
+          <nav className="p-3 space-y-1">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`flex w-full items-center gap-4 rounded-xl p-4 text-sm font-bold transition-all ${page === item.id
-                    ? 'bg-blue-500/10 text-blue-500'
-                    : 'text-[var(--text-muted)] hover:bg-[var(--surface-strong)]'
-                  }`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                  page === item.id
+                    ? 'bg-indigo-500/10 text-indigo-400'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--surface-muted)]'
+                }`}
               >
-                {item.icon}
-                {item.label}
+                {item.icon} {item.label}
               </button>
             ))}
-            <hr className="my-2 border-[var(--border)]" />
-            <button
-              onClick={logout}
-              className="flex w-full items-center gap-4 rounded-xl p-4 text-sm font-bold text-rose-500 hover:bg-rose-500/10"
-            >
-              <LogOut size={18} />
-              Logout
-            </button>
+            <div className="pt-1 border-t border-[var(--border)] mt-1">
+              <button
+                onClick={logout}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-rose-500 hover:bg-rose-500/8 transition-colors"
+              >
+                <LogOut size={15} /> Sign Out
+              </button>
+            </div>
           </nav>
         </div>
       )}

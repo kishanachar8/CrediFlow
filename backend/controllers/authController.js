@@ -25,7 +25,7 @@ exports.register = async (req, res, next) => {
     const { accessToken, refreshToken } = await authService.issueTokens(user);
     sendRefreshTokenCookie(res, refreshToken);
     sendSuccess(res, 'Registration successful', {
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, provider: user.provider },
       accessToken,
     }, 201);
   } catch (error) {
@@ -39,7 +39,7 @@ exports.login = async (req, res, next) => {
     const { accessToken, refreshToken } = await authService.issueTokens(user);
     sendRefreshTokenCookie(res, refreshToken);
     sendSuccess(res, 'Login successful', {
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, provider: user.provider },
       accessToken,
     });
   } catch (error) {
@@ -64,9 +64,14 @@ exports.refresh = async (req, res, next) => {
       throw error;
     }
 
-    const user = { id: payload.userId, name: payload.name, email: payload.email };
+    const user = { id: payload.userId, name: payload.name, email: payload.email, provider: payload.provider || 'local' };
     const { refreshToken } = await authService.rotateRefreshToken(payload.tokenId, user);
-    const accessToken = tokenService.createAccessToken({ userId: user.id, name: user.name, email: user.email });
+    const accessToken = tokenService.createAccessToken({
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      provider: user.provider,
+    });
     sendRefreshTokenCookie(res, refreshToken);
 
     sendSuccess(res, 'Token refreshed successfully', { accessToken });
@@ -107,7 +112,94 @@ exports.profile = async (req, res, next) => {
       throw error;
     }
     sendSuccess(res, 'Profile retrieved successfully', {
-      user: { id: req.user.userId, name: req.user.name, email: req.user.email },
+      user: { id: req.user.userId, name: req.user.name, email: req.user.email, provider: req.user.provider || 'local' },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateProfile = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      const error = new Error('Unauthorized');
+      error.status = 401;
+      throw error;
+    }
+
+    const { name, email } = req.body;
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const user = await User.findById(req.user.userId);
+
+    if (!user) {
+      const error = new Error('User not found');
+      error.status = 404;
+      throw error;
+    }
+
+    if (user.email !== normalizedEmail) {
+      const existingUser = await User.findOne({ email: normalizedEmail });
+      if (existingUser && existingUser.id !== user.id) {
+        const error = new Error('Email already in use');
+        error.status = 409;
+        throw error;
+      }
+      user.email = normalizedEmail;
+    }
+
+    user.name = name;
+    await user.save();
+
+    sendSuccess(res, 'Profile updated successfully', {
+      user: { id: user.id, name: user.name, email: user.email, provider: user.provider },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.changePassword = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      const error = new Error('Unauthorized');
+      error.status = 401;
+      throw error;
+    }
+
+    const { oldPassword, newPassword } = req.body;
+    const user = await User.findById(req.user.userId);
+
+    if (!user) {
+      const error = new Error('User not found');
+      error.status = 404;
+      throw error;
+    }
+
+    const isGoogleUser = user.provider === 'google';
+
+    if (!isGoogleUser) {
+      if (!oldPassword) {
+        const error = new Error('Current password is required to change your password.');
+        error.status = 400;
+        throw error;
+      }
+
+      const matches = await user.comparePassword(oldPassword);
+      if (!matches) {
+        const error = new Error('Current password is incorrect.');
+        error.status = 401;
+        throw error;
+      }
+    }
+
+    user.password = newPassword;
+    if (isGoogleUser) {
+      user.provider = 'local';
+    }
+    await user.save();
+
+    sendSuccess(res, 'Password updated successfully', {
+      user: { id: user.id, name: user.name, email: user.email, provider: user.provider },
     });
   } catch (error) {
     next(error);
@@ -159,7 +251,7 @@ exports.getGoogleCallbackToken = async (req, res, next) => {
     sendRefreshTokenCookie(res, refreshToken);
     
     sendSuccess(res, 'Google login successful', {
-      user: { id: user.id, name: user.name, email: user.email, profilePicture: user.profilePicture },
+      user: { id: user.id, name: user.name, email: user.email, provider: user.provider, profilePicture: user.profilePicture },
       accessToken,
     });
   } catch (error) {
@@ -224,7 +316,7 @@ exports.verifyGoogleToken = async (req, res, next) => {
     sendRefreshTokenCookie(res, refreshToken);
 
     sendSuccess(res, 'Google login successful', {
-      user: { id: user.id, name: user.name, email: user.email, profilePicture: user.profilePicture },
+      user: { id: user.id, name: user.name, email: user.email, provider: user.provider, profilePicture: user.profilePicture },
       accessToken,
     });
   } catch (error) {

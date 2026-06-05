@@ -28,6 +28,8 @@ router.post('/login', validate(loginSchema), asyncHandler(authController.login))
 router.post('/refresh', csrfProtection, asyncHandler(authController.refresh));
 router.post('/logout', csrfProtection, asyncHandler(authController.logout));
 router.get('/profile', authMiddleware.ensureAuthenticated, asyncHandler(authController.profile));
+router.patch('/profile', authMiddleware.ensureAuthenticated, validate(require('../validators/authValidator').updateProfileSchema), asyncHandler(authController.updateProfile));
+router.patch('/change-password', csrfProtection, authMiddleware.ensureAuthenticated, validate(require('../validators/authValidator').changePasswordSchema), asyncHandler(authController.changePassword));
 router.get('/csrf-token', csrfProtection, (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
